@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arin Auto Bot</title>
+    <link rel="stylesheet" href="sidepanel.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- URL Overlay -->
+        <div id="url-overlay" class="url-overlay hidden">
+            <div class="overlay-content">
+                <span class="overlay-icon">⚠️</span>
+                <h2>กรุณาเปิดหน้า Google Flow</h2>
+                <p>บอทจะทำงานได้เฉพาะบนหน้า <strong>labs.google/fx/</strong> เท่านั้น</p>
+                <button class="btn-primary" onclick="window.location.reload()">สลับไปแล้วกด Refresh</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header>
+            <div class="logo-area">
+                <h1>🤖 Arin Auto Bot</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="control">Control</button>
+                <button class="tab-btn" data-tab="settings">Setting</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- TAB 1: Control -->
+            <section id="control-tab" class="tab-content active">
+
+                <!-- Mode -->
+                <div class="section mode-selector">
+                    <button class="mode-btn active" data-mode="text_to_video">Text to Video</button>
+                    <button class="mode-btn" data-mode="frame_to_video">Frame to Video</button>
+                    <button class="mode-btn" data-mode="text_to_image">Text to Image</button>
+                </div>
+
+                <!-- Performance -->
+                <div class="section grid-2">
+                    <div class="field">
+                        <label>⚡ คิวพร้อมกัน</label>
+                        <select id="concurrentPrompts">
+                            <option value="1">1 prompt</option>
+                            <option value="2" selected>2 prompts</option>
+                            <option value="3">3 prompts</option>
+                            <option value="4">4 prompts</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>🕒 หน่วงเวลา (วิ)</label>
+                        <div class="delay-inputs">
+                            <input type="number" id="delayMin" value="20">
+                            <span>⇄</span>
+                            <input type="number" id="delayMax" value="30">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Zone -->
+                <div id="upload-zone" class="section hidden">
+                    <label>🖼️ อัปโหลดรูปภาพ</label>
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <span>☁️ คลิกหรือลากไฟล์มาวาง</span>
+                            <small>PNG, JPG, GIF — สูงสุด 10MB</small>
+                        </div>
+                        <input type="file" id="fileInput" multiple hidden>
+                    </div>
+                    <div class="field mt-10">
+                        <label>ตัวเลือกการประมวลผล</label>
+                        <select id="imageProcessing">
+                            <option value="first_frame">First frame image for each prompt</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Prompts -->
+                <div class="section">
+                    <div class="flex-between">
+                        <label style="margin:0">✍️ Prompts</label>
+                        <button class="btn-text" id="uploadTxt">↑ อัปโหลด .txt</button>
+                    </div>
+                    <textarea id="promptsText"
+                        placeholder="แมวส้มอวกาศกำลังกินซูชิ&#10;(1 prompt ต่อบรรทัด / เว้นบรรทัดว่างเพื่อแยก Prompt ยาว)"></textarea>
+                    <div class="flex-between mt-10" style="align-items: center;">
+                        <div class="flex-column" style="gap: 2px;">
+                            <label style="margin:0; font-size:11px; color: var(--text-secondary)">✨ AI Enhance
+                                Prompt</label>
+                            <button class="enhance-preview-btn" id="btnEnhanceManual">
+                                ✨ AI Edit (Preview)
+                            </button>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="aiEnhance">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Output -->
+                <div class="section grid-2">
+                    <div class="field">
+                        <label>📦 ผลลัพธ์ / Prompt</label>
+                        <select id="outputsPerPrompt">
+                            <option value="1">1</option>
+                            <option value="2" selected>2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>📂 บันทึกโฟลเดอร์</label>
+                        <input type="text" id="saveFolder" placeholder="veo-folder-1">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="hint-text" id="modeHint">
+                        ปรับ aspect ratio, duration และจำนวนได้ที่แถบ Setting
+                    </div>
+                    <div class="flex-between mt-10">
+                        <label style="margin:0; font-size:11px; color: var(--text-secondary)">🏷️
+                            เปลี่ยนชื่อไฟล์อัตโนมัติ</label>
+                        <label class="switch">
+                            <input type="checkbox" id="autoRename" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Queue -->
+                <div class="section queue-area">
+                    <div class="flex-between">
+                        <h3>Queue</h3>
+                        <span class="status-badge" id="queueStatus">0 running</span>
+                    </div>
+                    <div class="queue-list" id="queueList">
+                        <div class="empty-queue">ไม่มีงานในคิว</div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn-secondary" id="btnClear">↺ ล้าง</button>
+                    <button class="btn-primary" id="btnRun">▷ เริ่มรัน</button>
+                </div>
+
+            </section>
+
+            <!-- TAB 2: Settings -->
+            <section id="settings-tab" class="tab-content">
+                <div class="section">
+                    <h3>Google Flow</h3>
+                    <div class="field">
+                        <label>Aspect Ratio</label>
+                        <select id="aspectRatio">
+                            <option value="16:9">16:9 — Landscape</option>
+                            <option value="9:16">9:16 — Portrait</option>
+                            <option value="1:1">1:1 — Square</option>
+                            <option value="4:3">4:3 — Classic</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Duration</label>
+                        <select id="duration">
+                            <option value="5s">5 วินาที</option>
+                            <option value="10s">10 วินาที</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>Image Model</label>
+                        <select id="imageModel">
+                            <option value="banana_nano_pro">Nano Banana Pro</option>
+                            <option value="banana_nano_2" selected>Nano Banana 2</option>
+                            <option value="imagen_4">Imagen 4</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h3>AI Integration</h3>
+                    <div class="field">
+                        <label>AI Provider</label>
+                        <select id="aiProvider">
+                            <option value="gemini">Google Gemini</option>
+                            <option value="groq">Groq (Fast)</option>
+                            <option value="openrouter">OpenRouter (Multiple)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label id="apiKeyLabel">Gemini API Key</label>
+                        <div class="api-input-group">
+                            <input type="password" id="apiKey" placeholder="กรอก API Key สำหรับ AI Enhance">
+                            <button id="btnCheckApi" class="btn-check-api" title="ตรวจสอบ API Key">
+                                <span class="api-status-icon" id="apiStatusIcon">⚡</span>
+                            </button>
+                        </div>
+                        <div id="apiStatusText" class="api-status-text">กรุณาตรวจสอบความถูกต้องของ Key</div>
+                    </div>
+                    <div class="field">
+                        <label>Default Vibe</label>
+                        <select id="defaultVibe">
+                            <option value="cinematic">Cinematic</option>
+                            <option value="anime">Anime</option>
+                            <option value="photorealistic">Photorealistic</option>
+                            <option value="3d_render">3D Render</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Arin Auto Bot",
+  "version": "1.0",
+  "description": "Auto VEO on Google Flow - Arin Edition",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "scripting",
+    "activeTab",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://labs.google/fx/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://labs.google/fx/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "คลิกเพื่อเปิด Arin Auto Bot"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
