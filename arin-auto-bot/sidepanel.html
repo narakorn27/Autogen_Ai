@@ -33,8 +33,8 @@
                 <span class="version">v1.0</span>
             </div>
             <div class="tabs">
-                <button class="tab-btn active" data-tab="control">Control</button>
-                <button class="tab-btn" data-tab="settings">Setting</button>
+                <button class="tab-btn active" data-tab="control">ควบคุม</button>
+                <button class="tab-btn" data-tab="settings">ตั้งค่า</button>
             </div>
         </header>
 
@@ -83,8 +83,13 @@
                     <div class="field mt-10">
                         <label>ตัวเลือกการประมวลผล</label>
                         <select id="imageProcessing">
-                            <option value="first_frame">First frame image for each prompt</option>
+                            <option value="first_frame">🖼️ รูปเดียวสำหรับทุก Prompt</option>
+                            <option value="one_per_prompt">🔄 จับคู่รูปกับ Prompt 1:1</option>
+                            <option value="cycle">🔁 วนรูปซ้ำ (ถ้ารูปน้อยกว่า Prompt)</option>
                         </select>
+                    </div>
+                    <div id="image-previews" class="image-previews mt-10">
+                        <!-- Thumbnails will be injected here -->
                     </div>
                 </div>
 
@@ -130,11 +135,17 @@
 
                 <div class="section">
                     <div class="hint-text" id="modeHint">
-                        ปรับ aspect ratio, duration และจำนวนได้ที่แถบ Setting
+                        ปรับสัดส่วนภาพ โมเดล และจำนวนได้ที่แถบ Setting
                     </div>
-                    <div class="flex-between mt-10">
-                        <label style="margin:0; font-size:11px; color: var(--text-secondary)">🏷️
-                            เปลี่ยนชื่อไฟล์อัตโนมัติ</label>
+                    <div class="toggle-row">
+                        <label class="toggle-label">📥 ดาวน์โหลดอัตโนมัติ</label>
+                        <label class="switch">
+                            <input type="checkbox" id="autoDownload" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <label class="toggle-label">🏷️ เปลี่ยนชื่อไฟล์อัตโนมัติ</label>
                         <label class="switch">
                             <input type="checkbox" id="autoRename" checked>
                             <span class="slider round"></span>
@@ -142,11 +153,11 @@
                     </div>
                 </div>
 
-                <!-- Queue -->
+                <!-- คิว -->
                 <div class="section queue-area">
                     <div class="flex-between">
-                        <h3>Queue</h3>
-                        <span class="status-badge" id="queueStatus">0 running</span>
+                        <h3>คิว Prompt</h3>
+                        <span class="status-badge" id="queueStatus">0 กำลังรัน</span>
                     </div>
                     <div class="queue-list" id="queueList">
                         <div class="empty-queue">ไม่มีงานในคิว</div>
@@ -155,33 +166,36 @@
 
                 <div class="actions">
                     <button class="btn-secondary" id="btnClear">↺ ล้าง</button>
+                    <button class="btn-secondary" id="btnPause">⏸ หยุด</button>
+                    <button class="btn-secondary hidden" id="btnResume">▶ ต่อ</button>
+                    <button class="btn-secondary" id="btnRetryFailed">🔁 ลองใหม่ที่ล้มเหลว</button>
                     <button class="btn-primary" id="btnRun">▷ เริ่มรัน</button>
                 </div>
 
             </section>
 
-            <!-- TAB 2: Settings -->
+            <!-- TAB 2: Setting -->
             <section id="settings-tab" class="tab-content">
                 <div class="section">
                     <h3>Google Flow</h3>
                     <div class="field">
-                        <label>Aspect Ratio</label>
+                        <label>สัดส่วนภาพ (Aspect Ratio)</label>
                         <select id="aspectRatio">
-                            <option value="16:9">16:9 — Landscape</option>
-                            <option value="9:16">9:16 — Portrait</option>
-                            <option value="1:1">1:1 — Square</option>
-                            <option value="4:3">4:3 — Classic</option>
+                            <option value="16:9">16:9 — แนวนอน</option>
+                            <option value="9:16">9:16 — แนวตั้ง</option>
+                            <option value="1:1">1:1 — จัตุรัส</option>
+                            <option value="4:3">4:3 — คลาสสิก</option>
                         </select>
                     </div>
                     <div class="field">
-                        <label>Duration</label>
+                        <label>ความยาววิดีโอ (Duration)</label>
                         <select id="duration">
                             <option value="5s">5 วินาที</option>
                             <option value="10s">10 วินาที</option>
                         </select>
                     </div>
                     <div class="field">
-                        <label>Image Model</label>
+                        <label>โมเดลรูป (Image Model)</label>
                         <select id="imageModel">
                             <option value="banana_nano_pro">Nano Banana Pro</option>
                             <option value="banana_nano_2" selected>Nano Banana 2</option>
@@ -219,6 +233,10 @@
                             <option value="3d_render">3D Render</option>
                         </select>
                     </div>
+                </div>
+                <div class="section" style="padding-top: 8px;">
+                    <button type="button" class="btn-primary btn-save-settings" id="btnSaveSettings">💾 บันทึกการตั้งค่า</button>
+                    <span class="save-feedback hidden" id="saveFeedback">บันทึกแล้ว</span>
                 </div>
             </section>
         </main>

@@ -207,13 +207,55 @@ textarea {
     transition: all 0.2s ease;
     backdrop-filter: blur(8px);
     -webkit-appearance: none;
+    appearance: none;
 }
 
+/* Dropdown (select): สีเข้มตลอด ไม่กระพริบขาว + transition ลื่น */
+select {
+    padding-right: 32px;
+    background-color: #12151a;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.9)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+    transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+select:hover {
+    background-color: #161a20;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234ade80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
 select:focus,
+select:active {
+    background-color: #0e1114;
+    border-color: var(--glass-border-accent);
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.12), inset 0 1px 0 rgba(0, 0, 0, 0.2);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234ade80' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+/* ตอนคลิกเปิด dropdown ไม่ให้มีแวบขาวจาก outline/highlight ของ browser */
+select::-ms-expand {
+    filter: invert(0);
+}
+@supports (-webkit-appearance: none) {
+    select:focus {
+        background-color: #0e1114;
+    }
+}
+
+/* สี dropdown (option) — เข้มตลอด ไม่เหลือขาว */
+select option {
+    background: #0e1114;
+    color: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+}
+select optgroup {
+    background: #0a0b0d;
+    color: var(--accent);
+}
+
 input:focus,
 textarea:focus {
     border-color: var(--glass-border-accent);
-    background: rgba(74, 222, 128, 0.04);
+    background-color: rgba(74, 222, 128, 0.04);
     box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
@@ -278,12 +320,30 @@ textarea {
     background: var(--accent-dim);
 }
 
+/* ─── Toggle Row (เหมือนตัวอย่าง reference) ─── */
+.toggle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    gap: 12px;
+}
+.toggle-label {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: none;
+    letter-spacing: 0.2px;
+}
+
 /* ─── Toggle Switch ─── */
 .switch {
     position: relative;
     display: inline-block;
-    width: 40px;
-    height: 22px;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
 }
 
 .switch input {
@@ -318,12 +378,12 @@ input:checked+.slider {
 }
 
 input:checked+.slider:before {
-    transform: translateX(18px);
+    transform: translateX(20px);
     background: var(--accent);
 }
 
 .slider.round {
-    border-radius: 22px;
+    border-radius: 24px;
 }
 
 .slider.round:before {
@@ -351,6 +411,21 @@ input:checked+.slider:before {
     cursor: pointer;
 }
 
+.btn-save-settings {
+    width: 100%;
+    margin-top: 4px;
+}
+.save-feedback {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+}
+.save-feedback.hidden {
+    display: none;
+}
+
 .actions {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -371,9 +446,187 @@ input:checked+.slider:before {
 .queue-item {
     background: var(--glass-surface);
     border-radius: var(--radius-sm);
-    padding: 9px;
-    margin-bottom: 3px;
-    border-left: 2px solid rgba(255, 255, 255, 0.1);
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    border-left: 3px solid rgba(255, 255, 255, 0.12);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+/* สถานะคิว: สีชัด สำเร็จ/ล้มเหลว/กำลังรัน เหมือนตัวอย่าง */
+.queue-item.status-completed {
+    border-left-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.12);
+}
+.queue-item.status-running {
+    border-left-color: #f59e0b;
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.15);
+}
+.queue-item.status-failed {
+    border-left-color: var(--danger);
+    box-shadow: 0 0 0 1px var(--danger-dim);
+}
+
+.item-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.item-text {
+    font-size: 12px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.item-status-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+.queue-item.status-pending .item-status-tag {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+}
+.queue-item.status-running .item-status-tag,
+.queue-item.status-typing .item-status-tag,
+.queue-item.status-submitting .item-status-tag {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+}
+.queue-item.status-completed .item-status-tag {
+    background: rgba(74, 222, 128, 0.2);
+    color: var(--accent);
+    border: 1px solid var(--glass-border-accent);
+}
+.queue-item.status-failed .item-status-tag {
+    background: var(--danger-dim);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.item-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+.progress-track {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.35s ease;
+    position: relative;
+}
+/* หลอด loading วิ่งขยับตอนกำลังรัน */
+.progress-fill--running {
+    background: linear-gradient(
+        90deg,
+        var(--accent) 0%,
+        rgba(74, 222, 128, 0.85) 35%,
+        #6ee7b7 50%,
+        rgba(74, 222, 128, 0.85) 65%,
+        var(--accent) 100%
+    );
+    background-size: 200% 100%;
+    animation: progress-shimmer 1.6s ease-in-out infinite;
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+}
+.progress-fill--running::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.25) 40%,
+        rgba(255, 255, 255, 0.35) 50%,
+        rgba(255, 255, 255, 0.25) 60%,
+        transparent 100%
+    );
+    background-size: 60% 100%;
+    animation: progress-glow 1.4s ease-in-out infinite;
+}
+@keyframes progress-shimmer {
+    0%, 100% { background-position: 100% 0; }
+    50% { background-position: 0% 0; }
+}
+@keyframes progress-glow {
+    0% { transform: translateX(-100%); opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { transform: translateX(200%); opacity: 0.6; }
+}
+.queue-item.status-failed .progress-fill {
+    background: var(--danger);
+}
+.progress-label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+    min-width: 28px;
+    text-align: right;
+}
+.item-error {
+    font-size: 10px;
+    color: var(--danger);
+    margin-top: 4px;
+    padding-left: 2px;
+}
+.status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-muted);
+}
+.queue-item.status-running .status-dot,
+.queue-item.status-typing .status-dot,
+.queue-item.status-submitting .status-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+.queue-item.status-completed .status-dot {
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent-glow);
+}
+.queue-item.status-failed .status-dot {
+    background: var(--danger);
+}
+
+/* ไอคอนติ๊กถูกเมื่อสำเร็จ (แบบตัวอย่าง) */
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+.status-icon--done {
+    background: rgba(74, 222, 128, 0.25);
+    color: var(--accent);
+    border: 1px solid var(--glass-border-accent);
+    box-shadow: 0 0 8px rgba(74, 222, 128, 0.2);
 }
 
 .status-badge {
@@ -562,4 +815,61 @@ input:checked+.slider:before {
 .enhance-preview-btn:disabled {
     opacity: 0.5;
     cursor: wait;
+}
+
+/* ─── Image Previews ─── */
+.image-previews {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--glass-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--glass-border);
+}
+
+.preview-item {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--white-10);
+}
+
+.preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.preview-item .remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    background: rgba(220, 38, 38, 0.9);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    z-index: 2;
+}
+
+.preview-item .index-badge {
+    position: absolute;
+    bottom: 2px;
+    left: 2px;
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--accent);
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 700;
 }

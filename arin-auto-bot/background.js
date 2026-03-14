@@ -6,14 +6,28 @@ let isRunning = false;
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error(error));
 
+chrome.storage.local.get('botState', (data) => {
+    if (data.botState && data.botState.queue) {
+        queue = data.botState.queue.map(item => {
+            if (item.status === 'running' || item.status === 'typing' || item.status === 'submitting') {
+                return { ...item, status: 'pending', percent: 0 };
+            }
+            return item;
+        });
+        broadcastQueue();
+    }
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === 'START_QUEUE') {
-        const newItems = message.prompts.map((p, index) => ({
+        const newItems = message.items.map((item, index) => ({
             id: Date.now() + index,
-            prompt: p,
+            prompt: item.prompt,
+            image: item.image,
             mode: message.mode,
             status: 'pending',
             percent: 0,
+            retryCount: 0,
             error: null
         }));
         queue = [...queue, ...newItems];
@@ -46,15 +60,55 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             .catch(err => sendResponse({ success: false, error: err.message }));
         return true;
 
-    } else if (message.action === 'DOWNLOAD_RESULT') {
-        chrome.downloads.download({
-            url: message.url,
-            filename: `${message.folder}/${message.filename}`,
-            conflictAction: 'uniquify',
-            saveAs: true
+    } else if (message.action === 'PAUSE_QUEUE') {
+        isRunning = false;
+        broadcastQueue();
+    } else if (message.action === 'RESUME_QUEUE') {
+        if (!isRunning) processQueue();
+    } else if (message.action === 'RETRY_FAILED') {
+        queue.filter(q => q.status === 'failed').forEach(q => {
+            q.status = 'pending';
+            q.retryCount = 0;
+            q.error = null;
         });
+        broadcastQueue();
+        if (!isRunning) processQueue();
+
+    } else if (message.action === 'DOWNLOAD_RESULT') {
+        handleDownload(message);
     }
 });
+
+// ─── Download Handler: รองรับทั้ง blob URL, data URL, และ https URL ───
+const handleDownload = (message) => {
+    const { url, filename, folder } = message;
+    const fullFilename = folder ? `${folder}/${filename}` : filename;
+
+    if (!url) {
+        console.error('Arin BG: No URL to download');
+        return;
+    }
+
+    // data: URL — chrome.downloads รองรับ data URL โดยตรง (แต่มี limit ~2MB บางเวอร์ชัน)
+    // blob: URL — ใช้ได้เฉพาะใน context ที่ create มัน (content script) ดังนั้นจะไม่มาถึงนี้
+    // https: URL — ดาวน์โหลดปกติ
+    try {
+        chrome.downloads.download({
+            url: url,
+            filename: fullFilename,
+            conflictAction: 'uniquify',
+            saveAs: false  // ไม่ถามทุกครั้ง — auto save
+        }, (downloadId) => {
+            if (chrome.runtime.lastError) {
+                console.error('Arin BG: Download failed:', chrome.runtime.lastError.message);
+            } else {
+                console.log('Arin BG: Download started, ID:', downloadId, 'File:', fullFilename);
+            }
+        });
+    } catch (e) {
+        console.error('Arin BG: Download exception:', e.message);
+    }
+};
 
 const broadcastQueue = () => {
     chrome.runtime.sendMessage({ action: 'QUEUE_UPDATED', queue }).catch(() => { });
@@ -86,18 +140,20 @@ const processQueue = async () => {
 
 const runItem = async (item) => {
     item.status = 'running';
-    item.percent = 0;
+    item.percent = item.percent || 0;
     item.error = null;
+    item.retryCount = item.retryCount || 0;
     broadcastQueue();
 
     const data = await chrome.storage.local.get('botState');
     const { delayMin, delayMax } = data.botState.control;
+    const maxRetries = 3;
 
     try {
         let finalPrompt = item.prompt;
 
-        if (data.botState.settings?.aiEnhance && data.botState.settings?.apiKey) {
-            console.log('Enhancing prompt with AI...');
+        const control = data.botState.control || {};
+        if (control.aiEnhance && data.botState.settings?.apiKey) {
             try {
                 finalPrompt = await enhanceWithAI(
                     item.prompt,
@@ -105,7 +161,6 @@ const runItem = async (item) => {
                     data.botState.settings.defaultVibe,
                     data.botState.settings.aiProvider || 'gemini'
                 );
-                console.log('Enhanced:', finalPrompt);
             } catch (e) {
                 console.error('AI Enhance failed, using original:', e.message);
             }
@@ -115,51 +170,67 @@ const runItem = async (item) => {
         const activeTab = tabs[0];
 
         if (!activeTab || !activeTab.url.includes('labs.google/fx/')) {
-            item.status = 'failed';
-            item.error = 'กรุณาสลับไปที่หน้า Google Flow ก่อนเริ่มรัน';
-            broadcastQueue();
-            processQueue();
-            return;
+            throw new Error('[OFF_SITE] กรุณาสลับไปที่หน้า Google Flow');
         }
 
-        const activeImageData = await chrome.storage.local.get('activeImage');
+        const settings = {
+            ...data.botState.settings,
+            autoDownload: control.autoDownload !== false,
+            autoRename: control.autoRename !== false,
+            saveFolder: control.saveFolder,
+            outputsPerPrompt: control.outputsPerPrompt
+        };
 
         const response = await chrome.tabs.sendMessage(activeTab.id, {
             action: 'GENERATE',
             prompt: finalPrompt,
             promptId: item.id,
             mode: item.mode,
-            settings: data.botState.settings,
-            image: (item.mode === 'frame_to_video') ? activeImageData.activeImage : null
+            settings,
+            image: item.image
         });
 
         if (response && response.success) {
             item.status = 'completed';
             item.percent = 100;
         } else {
-            item.status = 'failed';
-            item.error = response ? response.error : 'ได้รับคำตอบผิดพลาดจากหน้าเว็บ';
+            if (response && response.needRefresh) {
+                try { await chrome.tabs.reload(activeTab.id); } catch (e) { console.warn(e); }
+            }
+            throw new Error(response ? response.error : 'ได้รับคำตอบผิดพลาดจากหน้าเว็บ');
         }
     } catch (err) {
-        item.status = 'failed';
-        item.error = 'การเชื่อมต่อผิดพลาด (ลอง Refresh หน้าเว็บแล้วรันใหม่)';
+        const errMsg = err.message || '';
+        console.error('Arin: Item failed:', errMsg);
+
+        if (errMsg.includes('[DAILY_LIMIT]')) {
+            item.status = 'failed';
+            item.error = 'ขีดจำกัดรายวันเต็ม หยุดคิวอัตโนมัติ';
+            isRunning = false;
+        } else if (item.retryCount < maxRetries && !errMsg.includes('[OFF_SITE]')) {
+            item.retryCount++;
+            item.status = 'pending';
+            const waitTime = 10000;
+            item.error = `Retry ${item.retryCount}/${maxRetries} (รอ 10 วิ)`;
+            setTimeout(() => { processQueue(); }, waitTime);
+        } else {
+            item.status = 'failed';
+            item.error = errMsg.replace(/\[.*?\]\s*/, '');
+        }
     }
 
     broadcastQueue();
 
     const delay = Math.floor(Math.random() * (delayMax - delayMin + 1) + delayMin) * 1000;
-    console.log(`Waiting ${delay}ms before next prompt...`);
     await new Promise(resolve => setTimeout(resolve, delay));
 
     processQueue();
 };
 
-// ✅ FIX: แยก helper สำหรับดึง error message จาก OpenRouter/Groq/Gemini
 const parseErrorMessage = (data, provider) => {
     if (provider === 'gemini') {
         return data.error?.message || 'Gemini API request failed';
     }
-    // OpenRouter และ Groq ใช้ format เดียวกัน แต่ OpenRouter มี nested errors เพิ่ม
     return (
         data.error?.message ||
         data.error?.metadata?.reasons?.[0] ||
@@ -168,8 +239,6 @@ const parseErrorMessage = (data, provider) => {
     );
 };
 
-// ✅ FIX: OpenRouter free models ที่ active อยู่ปัจจุบัน (มี fallback)
-const OPENROUTER_CHECK_MODEL = 'google/gemma-3-4b-it:free';
 const OPENROUTER_ENHANCE_MODELS = [
     'google/gemma-3-12b-it:free',
     'meta-llama/llama-4-scout:free',
@@ -189,26 +258,19 @@ const checkApiKey = async (apiKey, provider) => {
         headers['Authorization'] = `Bearer ${apiKey}`;
         body = { messages: [{ role: 'user', content: 'hi' }], model: 'llama-3.3-70b-versatile' };
     } else if (provider === 'openrouter') {
-        // ✅ FIX: ใช้ /auth/key endpoint แทน — ตรวจ key โดยตรงโดยไม่เสีย quota
         url = 'https://openrouter.ai/api/v1/auth/key';
         headers['Authorization'] = `Bearer ${apiKey}`;
-
         const res = await fetch(url, { method: 'GET', headers });
         const data = await res.json();
-
         if (!res.ok || data.error) {
-            const msg = data.error?.message || 'Invalid OpenRouter API key';
-            throw new Error(msg);
+            throw new Error(data.error?.message || 'Invalid OpenRouter API key');
         }
-        // data.data.label จะมีชื่อ key ถ้า valid
         return true;
     }
 
     const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
     const data = await res.json();
-    if (!res.ok) {
-        throw new Error(parseErrorMessage(data, provider));
-    }
+    if (!res.ok) throw new Error(parseErrorMessage(data, provider));
     return true;
 };
 
@@ -233,11 +295,9 @@ const enhanceWithAI = async (prompt, apiKey, vibe, provider) => {
     if (provider === 'gemini') {
         url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         body = { contents: [{ parts: [{ text: systemInstruction }] }] };
-
         const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
         const data = await res.json();
         if (!res.ok) throw new Error(parseErrorMessage(data, 'gemini'));
-
         const result = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!result) throw new Error('Invalid response from Gemini');
         return result.trim();
@@ -246,58 +306,33 @@ const enhanceWithAI = async (prompt, apiKey, vibe, provider) => {
         url = 'https://api.groq.com/openai/v1/chat/completions';
         headers['Authorization'] = `Bearer ${apiKey}`;
         body = { messages: [{ role: 'user', content: systemInstruction }], model: 'llama-3.3-70b-versatile' };
-
         const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
         const data = await res.json();
         if (!res.ok) throw new Error(parseErrorMessage(data, 'groq'));
-
         const result = data.choices?.[0]?.message?.content;
         if (!result) throw new Error('Invalid response from Groq');
         return result.trim();
 
     } else if (provider === 'openrouter') {
-        // ✅ FIX: ลอง model ตามลำดับ fallback จนกว่าจะสำเร็จ
         url = 'https://openrouter.ai/api/v1/chat/completions';
         headers['Authorization'] = `Bearer ${apiKey}`;
         headers['HTTP-Referer'] = 'https://labs.google/fx/';
         headers['X-Title'] = 'Arin Auto Bot';
 
         let lastError = null;
-
         for (const model of OPENROUTER_ENHANCE_MODELS) {
             try {
-                body = {
-                    messages: [{ role: 'user', content: systemInstruction }],
-                    model,
-                    max_tokens: 1000,
-                };
-
+                body = { messages: [{ role: 'user', content: systemInstruction }], model, max_tokens: 1000 };
                 const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
                 const data = await res.json();
-
-                if (!res.ok) {
-                    const msg = parseErrorMessage(data, 'openrouter');
-                    console.warn(`OpenRouter model ${model} failed: ${msg}`);
-                    lastError = new Error(msg);
-                    continue; // ลอง model ถัดไป
-                }
-
+                if (!res.ok) { lastError = new Error(parseErrorMessage(data, 'openrouter')); continue; }
                 const result = data.choices?.[0]?.message?.content;
-                if (!result) {
-                    lastError = new Error(`Empty response from model: ${model}`);
-                    continue;
-                }
-
-                console.log(`OpenRouter success with model: ${model}`);
+                if (!result) { lastError = new Error(`Empty response from model: ${model}`); continue; }
                 return result.trim();
-
             } catch (e) {
                 lastError = e;
-                console.warn(`OpenRouter model ${model} exception:`, e.message);
             }
         }
-
-        // ถ้าทุก model fail
         throw lastError || new Error('All OpenRouter models failed');
     }
 
