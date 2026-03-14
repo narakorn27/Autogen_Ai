@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arin Grok Auto Flow</title>
+    <link rel="stylesheet" href="sidepanel.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- URL Overlay -->
+        <div id="url-overlay" class="url-overlay hidden">
+            <div class="overlay-content">
+                <span class="overlay-icon">⚠️</span>
+                <h2>กรุณาเปิดหน้า Grok Imagine</h2>
+                <p>ระบบจะทำงานได้เฉพาะบนหน้า <strong>grok.com/imagine</strong> เท่านั้น</p>
+                <button class="btn-primary" onclick="window.location.reload()">สลับไปแล้วกด Refresh</button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header>
+            <div class="logo-area">
+                <h1>🌊 Arin Grok Auto Flow</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="control">ควบคุม</button>
+                <button class="tab-btn" data-tab="settings">ตั้งค่า</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- TAB 1: Control -->
+            <section id="control-tab" class="tab-content active">
+
+                <!-- ═══ Visual Mode Selector (Google Flow Style) ═══ -->
+                <div class="section mode-card pulse-border">
+                    <!-- Row 1 & 2: Layout Settings -->
+                    <div class="grid-2 tight">
+                        <div class="field" style="margin-bottom:0">
+                            <label>📐 สัดส่วนภาพ (Ratio)</label>
+                            <select id="aspectRatio" class="chip-select">
+                                <option value="9:16">📱 9:16 แนวตั้ง (Reels/TikTok)</option>
+                                <option value="16:9">🖥️ 16:9 แนวนอน (YouTube)</option>
+                                <option value="1:1">⬛ 1:1 จัตุรัส (IG)</option>
+                                <option value="2:3">🖼️ 2:3 แนวตั้งสั้น</option>
+                                <option value="3:2">🖼️ 3:2 แนวนอนสั้น</option>
+                            </select>
+                        </div>
+                        <div class="field" style="margin-bottom:0">
+                            <label>🎬 ความละเอียด</label>
+                            <select id="resolution" class="chip-select">
+                                <option value="720p">🌟 720p (HD ชัดเจน)</option>
+                                <option value="480p">⚡ 480p (SD รวดเร็ว)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- Row 3: Duration -->
+                    <div class="field mt-10" style="margin-bottom:0">
+                        <label>⏱️ ความยาววิดีโอ (Duration)</label>
+                        <select id="duration" class="chip-select">
+                            <option value="10s">⏳ 10 วินาที (แนะนำให้ผลลัพธ์ดีสุด)</option>
+                            <option value="6s">⏱️ 6 วินาที (โหลดเสร็จไว)</option>
+                        </select>
+                    </div>
+
+
+
+                    <!-- Upload Zone -->
+                    <div id="upload-zone" class="section">
+                        <label>🖼️ อัปโหลดรูปภาพ</label>
+                        <div class="drop-zone" id="dropZone">
+                            <div class="drop-zone-content">
+                                <span>☁️ คลิกหรือลากไฟล์มาวาง</span>
+                                <small>PNG, JPG, GIF — สูงสุด 10MB</small>
+                            </div>
+                            <input type="file" id="fileInput" multiple hidden>
+                        </div>
+                        <div class="field mt-10">
+                            <label>ตัวเลือกการประมวลผล</label>
+                            <select id="imageProcessing">
+                                <option value="first_frame">🖼️ รูปเดียวสำหรับทุก Prompt</option>
+                                <option value="one_per_prompt">🔄 จับคู่รูปกับ Prompt 1:1</option>
+                                <option value="cycle">🔁 วนรูปซ้ำ (ถ้ารูปน้อยกว่า Prompt)</option>
+                            </select>
+                        </div>
+                        <div id="image-previews" class="image-previews mt-10">
+                            <!-- Thumbnails will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Prompts -->
+                    <div class="section">
+                        <div class="flex-between" style="align-items: center; margin-bottom: 8px;">
+                            <label style="margin:0">✍️ Prompts</label>
+                            <button class="btn-upload-txt" id="uploadTxt">
+                                <svg class="icon-sm" viewBox="0 0 24 24">
+                                    <path
+                                        d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM13 3.5L18.5 9H13V3.5zM12 18l-4-4h2.5v-3h3v3H16l-4 4z" />
+                                </svg>
+                                อัปโหลด .txt
+                            </button>
+                        </div>
+                        <textarea id="promptsText"
+                            placeholder="แมวส้มอวกาศกำลังกินซูชิ&#10;(1 prompt ต่อบรรทัด / เว้นบรรทัดว่างเพื่อแยก Prompt ยาว)"></textarea>
+                        <div class="ai-enhance-card mt-10">
+                            <div class="ai-magic-header">
+                                <div class="flex-align-center gap-6">
+                                    <span class="sparkle-icon">✨</span>
+                                    <span class="ai-title">AI Enhance Prompt</span>
+                                </div>
+                                <div class="ai-badge" id="activeAiBadge">Gemini 2.0</div>
+                            </div>
+                            <div class="ai-action-row">
+                                <button class="btn-enhance-magic" id="btnEnhanceManual"
+                                    title="ให้ AI ช่วยแต่ง Prompt ให้สวยขึ้นและแทนที่ข้อความเดิม">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    ให้ AI ช่วยปรับปรุง
+                                </button>
+                                <div class="auto-enhance-control">
+                                    <span class="label-xs">รันอัตโนมัติ</span>
+                                    <label class="switch sm">
+                                        <input type="checkbox" id="aiEnhance">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Output -->
+                    <div class="section">
+                        <div class="field" style="margin-bottom: 0;">
+                            <label style="display:flex; align-items:center; gap:4px;">
+                                <svg class="icon-sm" viewBox="0 0 24 24">
+                                    <path
+                                        d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                                </svg>
+                                บันทึกโฟลเดอร์
+                            </label>
+                            <input type="text" id="saveFolder" placeholder="ชื่อโฟลเดอร์ (ไม่ต้องใส่ /)">
+                            <div class="hint-text mt-5"
+                                style="border:none; padding-left:0; font-size:10px; line-height:1.4; opacity:0.8;">
+                                ระบบจะสร้างโฟลเดอร์ย่อยใน <strong>Downloads</strong> อัตโนมัติ<br>
+                                *หากเว้นว่างไว้ จะบันทึกลง Downloads โดยตรง
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section">
+                        <div class="hint-text" id="modeHint">
+                            ปรับสัดส่วนภาพ โมเดล และจำนวนได้ที่แถบ Setting
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label">📥 ดาวน์โหลดอัตโนมัติ</label>
+                            <label class="switch">
+                                <input type="checkbox" id="autoDownload" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-row">
+                            <label class="toggle-label">🏷️ เปลี่ยนชื่อไฟล์อัตโนมัติ</label>
+                            <label class="switch">
+                                <input type="checkbox" id="autoRename" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- คิว -->
+                    <div class="section queue-area">
+                        <div class="flex-between">
+                            <h3>คิว Prompt</h3>
+                            <span class="status-badge" id="queueStatus">0 กำลังรัน</span>
+                        </div>
+                        <div class="queue-list" id="queueList">
+                            <div class="empty-queue">ไม่มีงานในคิว</div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button class="btn-secondary" id="btnClear">↺ ล้าง</button>
+                        <button class="btn-secondary" id="btnPause">⏸ หยุด</button>
+                        <button class="btn-secondary hidden" id="btnResume">▶ ต่อ</button>
+                        <button class="btn-secondary" id="btnRetryFailed">🔁 ลองใหม่ที่ล้มเหลว</button>
+                        <button class="btn-primary" id="btnRun">▷ เริ่มรัน</button>
+                    </div>
+
+            </section>
+
+            <!-- TAB 2: Setting -->
+            <section id="settings-tab" class="tab-content">
+                <div class="section">
+                    <h3>AI Integration</h3>
+                    <div class="field">
+                        <label>AI Provider</label>
+                        <select id="aiProvider">
+                            <option value="gemini">Google Gemini</option>
+                            <option value="groq">Groq (Fast)</option>
+                            <option value="openrouter">OpenRouter (Multiple)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label id="apiKeyLabel">Gemini API Key</label>
+                        <div class="api-input-group">
+                            <input type="password" id="apiKey" placeholder="กรอก API Key สำหรับ AI Enhance">
+                            <button id="btnCheckApi" class="btn-check-api" title="ตรวจสอบ API Key">
+                                <span class="api-status-icon" id="apiStatusIcon">⚡</span>
+                            </button>
+                        </div>
+                        <div id="apiStatusText" class="api-status-text">กรุณาตรวจสอบความถูกต้องของ Key</div>
+                    </div>
+                    <div class="field">
+                        <label>Default Vibe</label>
+                        <select id="defaultVibe">
+                            <option value="cinematic">Cinematic</option>
+                            <option value="anime">Anime</option>
+                            <option value="photorealistic">Photorealistic</option>
+                            <option value="3d_render">3D Render</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="section" style="padding-top: 8px;">
+                    <button type="button" class="btn-primary btn-save-settings" id="btnSaveSettings">💾
+                        บันทึกการตั้งค่า</button>
+                    <span class="save-feedback hidden" id="saveFeedback">บันทึกแล้ว</span>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>
