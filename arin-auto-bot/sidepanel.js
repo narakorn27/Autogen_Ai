@@ -1,9 +1,12 @@
 document.addEventListener('DOMContentLoaded', async () => {
+    // --- Elements ---
     const tabs = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
-    const modeBtns = document.querySelectorAll('.mode-btn');
     const uploadZone = document.getElementById('upload-zone');
-    const modeHint = document.getElementById('modeHint');
+    const subModeContainer = document.getElementById('subModeContainer');
+    const chipBtns = document.querySelectorAll('.chip-btn');
+    const quickModel = document.getElementById('quickModel');
+    
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const btnRun = document.getElementById('btnRun');
@@ -12,61 +15,76 @@ document.addEventListener('DOMContentLoaded', async () => {
     const queueList = document.getElementById('queueList');
     const queueStatus = document.getElementById('queueStatus');
 
-    const concurrentPrompts = document.getElementById('concurrentPrompts');
-    const delayMin = document.getElementById('delayMin');
-    const delayMax = document.getElementById('delayMax');
     const aiEnhance = document.getElementById('aiEnhance');
-    const outputsPerPrompt = document.getElementById('outputsPerPrompt');
     const saveFolder = document.getElementById('saveFolder');
     const autoRename = document.getElementById('autoRename');
     const autoDownload = document.getElementById('autoDownload');
-    const aspectRatio = document.getElementById('aspectRatio');
     const duration = document.getElementById('duration');
-    const imageModel = document.getElementById('imageModel');
     const aiProvider = document.getElementById('aiProvider');
+    const activeAiBadge = document.getElementById('activeAiBadge');
     const apiKeyLabel = document.getElementById('apiKeyLabel');
     const apiKey = document.getElementById('apiKey');
     const defaultVibe = document.getElementById('defaultVibe');
 
+    let activeType = 'video'; // video | image
     let activeMode = 'text_to_video';
     let uploadedImages = [];
 
-    // ─── State ───
+    const modelsByType = {
+        video: [
+            { value: 'veo-3-1-fast', label: 'Veo 3.1 - Fast' },
+            { value: 'veo-3-1-high', label: 'Veo 3.1 - High Quality' }
+        ],
+        image: [
+            { value: 'banana_nano_pro', label: 'Nano Banana Pro' },
+            { value: 'banana_nano_2', label: 'Nano Banana 2' },
+            { value: 'imagen_4', label: 'Imagen 4' }
+        ]
+    };
+
+    // --- State Management ---
     const loadState = async () => {
         const data = await chrome.storage.local.get('botState');
         if (data.botState) {
             const state = data.botState;
             activeMode = state.control.activeMode || 'text_to_video';
-            updateModeUI(activeMode);
+            activeType = activeMode === 'text_to_image' ? 'image' : 'video';
             
-            concurrentPrompts.value = state.control.concurrentPrompts || 2;
-            delayMin.value = state.control.delayMin || 20;
-            delayMax.value = state.control.delayMax || 30;
+            // Sync UI Chips
+            updateChipUI('type', activeType);
+            updateChipUI('mode', activeMode);
+            updateChipUI('ratio', state.settings.aspectRatio || '9:16');
+            updateChipUI('count', state.control.outputsPerPrompt || 2);
+            
+            // Sync Inputs
             promptsText.value = state.control.promptsText || '';
             aiEnhance.checked = state.control.aiEnhance || false;
-            outputsPerPrompt.value = state.control.outputsPerPrompt || 2;
             saveFolder.value = state.control.saveFolder || '';
             autoRename.checked = state.control.autoRename !== false;
             if (autoDownload) autoDownload.checked = state.control.autoDownload !== false;
             
-            aspectRatio.value = state.settings.aspectRatio || '16:9';
             duration.value = state.settings.duration || '5s';
-            imageModel.value = state.settings.imageModel || 'imagen_3';
-
             aiProvider.value = state.settings.aiProvider || 'gemini';
             updateProviderUI(aiProvider.value);
-
             apiKey.value = state.settings[`${aiProvider.value}_apiKey`] || state.settings.apiKey || '';
             defaultVibe.value = state.settings.defaultVibe || 'cinematic';
             
+            // Model
+            updateModelOptions(activeType);
+            quickModel.value = (activeType === 'image' ? state.settings.imageModel : state.settings.videoModel) || modelsByType[activeType][0].value;
+
             // Frame to Video Specific
             uploadedImages = state.control.uploadedImages || [];
             if (document.getElementById('imageProcessing')) {
                 document.getElementById('imageProcessing').value = state.control.imageProcessing || 'first_frame';
             }
             renderImagePreviews();
-
+            updateModeLogic();
             updateQueueUI(state.queue || []);
+        } else {
+            // Default settings
+            updateModelOptions('video');
+            updateModeLogic();
         }
     };
 
@@ -74,15 +92,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const data = await chrome.storage.local.get('botState');
         const oldSettings = data.botState?.settings || {};
 
+        const activeRatio = document.querySelector('.chip-btn[data-ratio].active')?.dataset.ratio || '9:16';
+        const activeCount = parseInt(document.querySelector('.chip-btn[data-count].active')?.dataset.count || 2);
+
         const botState = {
             control: {
                 activeMode,
-                concurrentPrompts: parseInt(concurrentPrompts.value),
-                delayMin: parseInt(delayMin.value),
-                delayMax: parseInt(delayMax.value),
                 promptsText: promptsText.value,
                 aiEnhance: aiEnhance.checked,
-                outputsPerPrompt: parseInt(outputsPerPrompt.value),
+                outputsPerPrompt: activeCount,
                 saveFolder: saveFolder.value,
                 autoRename: autoRename.checked,
                 autoDownload: autoDownload ? autoDownload.checked : true,
@@ -91,14 +109,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             },
             settings: {
                 ...oldSettings,
-                aspectRatio: aspectRatio.value,
+                aspectRatio: activeRatio,
                 duration: duration.value,
-                imageModel: imageModel.value,
                 aiProvider: aiProvider.value,
                 defaultVibe: defaultVibe.value
             },
             queue: await getQueue()
         };
+
+        if (activeType === 'image') {
+            botState.settings.imageModel = quickModel.value;
+        } else {
+            botState.settings.videoModel = quickModel.value;
+        }
 
         botState.settings[`${aiProvider.value}_apiKey`] = apiKey.value;
         botState.settings.apiKey = apiKey.value;
@@ -106,15 +129,37 @@ document.addEventListener('DOMContentLoaded', async () => {
         await chrome.storage.local.set({ botState });
     };
 
+    // --- UI Helpers ---
+    const updateChipUI = (grp, val) => {
+        document.querySelectorAll(`.chip-btn[data-${grp}]`).forEach(btn => {
+            btn.classList.toggle('active', btn.dataset[grp] == val);
+        });
+    };
+
+    const updateModelOptions = (type) => {
+        quickModel.innerHTML = modelsByType[type].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+    };
+
+    const updateModeLogic = () => {
+        // Toggle Sub-mode row visibility
+        subModeContainer.classList.toggle('hidden', activeType === 'image');
+        
+        // Final mode decision
+        if (activeType === 'image') {
+            activeMode = 'text_to_image';
+        } else {
+            activeMode = document.querySelector('.chip-btn[data-mode].active')?.dataset.mode || 'text_to_video';
+        }
+
+        // Toggle Upload Zone
+        uploadZone.classList.toggle('hidden', activeMode !== 'frame_to_video');
+    };
+
     const renderImagePreviews = () => {
         const container = document.getElementById('image-previews');
         if (!container) return;
         container.innerHTML = '';
-
-        if (uploadedImages.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
+        if (uploadedImages.length === 0) { container.style.display = 'none'; return; }
         container.style.display = 'grid';
 
         uploadedImages.forEach((img, index) => {
@@ -138,98 +183,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     };
 
-    const providerLabels = { gemini: 'Gemini API Key', groq: 'Groq API Key', openrouter: 'OpenRouter API Key' };
-    const providerPlaceholders = { gemini: 'กรอก API Key สำหรับ AI Enhance', groq: 'กรอก Groq API Key', openrouter: 'กรอก OpenRouter API Key' };
-
     const updateProviderUI = (provider) => {
-        apiKeyLabel.innerText = providerLabels[provider] || 'API Key';
-        apiKey.placeholder = providerPlaceholders[provider] || 'กรอก API Key';
-    };
-
-    aiProvider.addEventListener('change', async () => {
-        updateProviderUI(aiProvider.value);
-        const data = await chrome.storage.local.get('botState');
-        if (data.botState && data.botState.settings) {
-            apiKey.value = data.botState.settings[`${aiProvider.value}_apiKey`] || '';
-        } else {
-            apiKey.value = '';
+        const labels = { gemini: 'Gemini API Key', groq: 'Groq API Key', openrouter: 'OpenRouter API Key' };
+        apiKeyLabel.innerText = labels[provider] || 'API Key';
+        apiKey.placeholder = `กรอก API Key สำหรับ ${provider}`;
+        
+        if (activeAiBadge) {
+            const badgeLabels = { gemini: 'Gemini 2.0', groq: 'Groq Fast', openrouter: 'OpenRouter' };
+            activeAiBadge.innerText = badgeLabels[provider] || provider;
         }
-        saveState();
-    });
-
-    const getQueue = async () => {
-        const data = await chrome.storage.local.get('botState');
-        return data.botState?.queue || [];
     };
 
-    // ─── UI ───
-    const hints = {
-        text_to_video: 'ปรับสัดส่วนภาพ ความยาววิดีโอ และจำนวนได้ที่แถบ Setting',
-        frame_to_video: 'อัปโหลดรูปแล้วปรับ Setting ได้ที่แถบ Setting',
-        text_to_image: 'ปรับสัดส่วนภาพ โมเดลรูป และจำนวนได้ที่แถบ Setting — ดาวน์โหลดอัตโนมัติรองรับ'
-    };
-
-    const updateModeUI = (mode) => {
-        activeMode = mode;
-        modeBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === mode));
-        uploadZone.classList.toggle('hidden', mode !== 'frame_to_video');
-        modeHint.innerText = hints[mode] || hints.text_to_video;
-    };
-
-    const statusLabel = {
-        pending: 'รอ',
-        running: 'กำลังรัน',
-        typing: 'กำลังพิมพ์...',
-        submitting: 'กำลังส่ง',
-        completed: 'สำเร็จ',
-        failed: 'ล้มเหลว'
-    };
-
-    const updateQueueUI = (queue) => {
-        if (!queue || queue.length === 0) {
-            queueList.innerHTML = '<div class="empty-queue">ไม่มีงานในคิว</div>';
-            queueStatus.innerText = '0 กำลังรัน';
-            return;
-        }
-
-        const activeCount = queue.filter(q => q.status === 'running').length;
-        const total = queue.length;
-        queueStatus.innerText = activeCount > 0 ? `${activeCount} กำลังรัน` : `${total} งาน`;
-
-        queueList.innerHTML = queue.map(item => {
-            const pct = item.percent ?? 0;
-            const isDone = item.status === 'completed';
-            const isFailed = item.status === 'failed';
-            const isRunning = item.status === 'running' || item.status === 'typing' || item.status === 'submitting';
-            const barWidth = isDone ? 100 : pct;
-            const label = statusLabel[item.status] || item.status;
-            const pctLabel = isDone ? '100%' : isFailed ? '!' : pct > 0 ? `${pct}%` : '';
-            const fillClass = isRunning ? 'progress-fill progress-fill--running' : 'progress-fill';
-
-            const statusIcon = isDone
-                ? '<span class="status-icon status-icon--done" title="สำเร็จ">✓</span>'
-                : '<span class="status-dot"></span>';
-            return `
-            <div class="queue-item status-${item.status}">
-                <div class="item-main">
-                    <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
-                        ${statusIcon}
-                        <span class="item-text">${item.prompt}</span>
-                    </div>
-                    <span class="item-status-tag">${label}</span>
-                </div>
-                <div class="item-progress">
-                    <div class="progress-track">
-                        <div class="${fillClass}" style="width:${barWidth}%"></div>
-                    </div>
-                    <span class="progress-label">${pctLabel}</span>
-                </div>
-                ${item.error ? `<div class="item-error">${item.error}</div>` : ''}
-            </div>`;
-        }).join('');
-    };
-
-    // ─── Events ───
+    // --- Events ---
+    // Tabs
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(t => t.classList.remove('active'));
@@ -239,13 +205,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    modeBtns.forEach(btn => {
-        btn.addEventListener('click', () => { updateModeUI(btn.dataset.mode); saveState(); });
+    // Chip Buttons (Type, Mode, Ratio, Count)
+    chipBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const ds = btn.dataset;
+            if (ds.type) {
+                activeType = ds.type;
+                updateChipUI('type', activeType);
+                updateModelOptions(activeType);
+                updateModeLogic();
+            } else if (ds.mode) {
+                updateChipUI('mode', ds.mode);
+                updateModeLogic();
+            } else if (ds.ratio) {
+                updateChipUI('ratio', ds.ratio);
+            } else if (ds.count) {
+                updateChipUI('count', ds.count);
+            }
+            saveState();
+        });
     });
 
-    const inputs = [concurrentPrompts, delayMin, delayMax, promptsText, aiEnhance, outputsPerPrompt,
-        saveFolder, autoRename, autoDownload, aspectRatio, duration, imageModel, apiKey, defaultVibe, aiProvider];
-    inputs.forEach(input => {
+    // Settings Inputs
+    const autoInputs = [promptsText, aiEnhance, 
+        saveFolder, autoRename, autoDownload, duration, apiKey, defaultVibe, aiProvider, quickModel];
+    autoInputs.forEach(input => {
         if (!input) return;
         input.addEventListener('change', saveState);
         if (input.tagName === 'TEXTAREA' || input.type === 'text' || input.type === 'password') {
@@ -253,74 +237,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    const btnSaveSettings = document.getElementById('btnSaveSettings');
-    const saveFeedback = document.getElementById('saveFeedback');
-    if (btnSaveSettings && saveFeedback) {
-        btnSaveSettings.addEventListener('click', async () => {
-            await saveState();
-            saveFeedback.classList.remove('hidden');
-            setTimeout(() => saveFeedback.classList.add('hidden'), 2000);
-        });
-    }
+    aiProvider.addEventListener('change', async () => {
+        updateProviderUI(aiProvider.value);
+        const data = await chrome.storage.local.get('botState');
+        apiKey.value = data.botState?.settings?.[`${aiProvider.value}_apiKey`] || '';
+        saveState();
+    });
 
-    const btnPause = document.getElementById('btnPause');
-    const btnResume = document.getElementById('btnResume');
-    const btnRetryFailed = document.getElementById('btnRetryFailed');
-
-    btnPause.addEventListener('click', () => {
+    // Control Buttons
+    document.getElementById('btnPause').addEventListener('click', () => {
         chrome.runtime.sendMessage({ action: 'PAUSE_QUEUE' });
-        btnPause.classList.add('hidden');
-        btnResume.classList.remove('hidden');
+        document.getElementById('btnPause').classList.add('hidden');
+        document.getElementById('btnResume').classList.remove('hidden');
     });
 
-    btnResume.addEventListener('click', () => {
+    document.getElementById('btnResume').addEventListener('click', () => {
         chrome.runtime.sendMessage({ action: 'RESUME_QUEUE' });
-        btnResume.classList.add('hidden');
-        btnPause.classList.remove('hidden');
+        document.getElementById('btnResume').classList.add('hidden');
+        document.getElementById('btnPause').classList.remove('hidden');
     });
 
-    btnRetryFailed.addEventListener('click', () => {
+    document.getElementById('btnRetryFailed').addEventListener('click', () => {
         chrome.runtime.sendMessage({ action: 'RETRY_FAILED' });
-    });
-
-    btnRun.addEventListener('click', async () => {
-        btnPause.classList.remove('hidden');
-        btnResume.classList.add('hidden');
-        const text = promptsText.value.trim();
-        if (!text) { alert('กรุณากรอก Prompt ก่อนเริ่มรัน'); return; }
-
-        let prompts = [];
-        if (text.includes('\n\n')) {
-            prompts = text.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
-        } else if ((text.includes('{') && text.includes('}')) || text.length > 600) {
-            prompts = [text];
-        } else {
-            prompts = text.split('\n').map(p => p.trim()).filter(p => p.length > 0);
-        }
-
-        const processing = document.getElementById('imageProcessing')?.value || 'first_frame';
-        const queueItems = prompts.map((p, i) => {
-            let imgData = null;
-            if (activeMode === 'frame_to_video' && uploadedImages.length > 0) {
-                if (processing === 'first_frame') {
-                    imgData = uploadedImages[0].base64;
-                } else if (processing === 'one_per_prompt') {
-                    imgData = uploadedImages[i] ? uploadedImages[i].base64 : null;
-                } else if (processing === 'cycle') {
-                    imgData = uploadedImages[i % uploadedImages.length].base64;
-                }
-            }
-            return { prompt: p, image: imgData };
-        });
-
-        chrome.runtime.sendMessage({ 
-            action: 'START_QUEUE', 
-            items: queueItems, 
-            mode: activeMode 
-        });
-        
-        btnPause.classList.remove('hidden');
-        btnResume.classList.add('hidden');
     });
 
     btnClear.addEventListener('click', async () => {
@@ -329,154 +267,172 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveState();
     });
 
-    // AI Check
-    const btnCheckApi = document.getElementById('btnCheckApi');
-    const apiStatusIcon = document.getElementById('apiStatusIcon');
-    const apiStatusText = document.getElementById('apiStatusText');
+    // Run Logic
+    btnRun.addEventListener('click', async () => {
+        const text = promptsText.value.trim();
+        if (!text) { alert('กรุณากรอก Prompt ก่อนเริ่มรัน'); return; }
 
-    const updateApiStatus = (status, message = '') => {
-        const apiField = apiKey.closest('.field');
-        if (!apiField) return;
-        apiField.classList.remove('api-loading', 'api-success', 'api-error');
-        if (status) apiField.classList.add(`api-${status}`);
+        let prompts = text.includes('\n\n') ? text.split(/\n\s*\n/) : text.split('\n');
+        prompts = prompts.map(p => p.trim()).filter(p => p.length > 0);
 
-        if (status === 'loading') {
-            apiStatusIcon.innerHTML = '<div class="api-loader"></div>';
-        } else if (status === 'success') {
-            apiStatusIcon.innerText = '✅';
-        } else if (status === 'error') {
-            apiStatusIcon.innerText = '❌';
-        } else {
-            apiStatusIcon.innerText = '⚡';
-        }
-        apiStatusText.innerText = message || (status === 'success' ? 'API Key ใช้งานได้ปกติ' : 'กรุณาตรวจสอบความถูกต้องของ Key');
-    };
-
-    btnCheckApi.addEventListener('click', async () => {
-        const key = apiKey.value.trim();
-        if (!key) { updateApiStatus('error', 'กรุณากรอก API Key'); return; }
-        updateApiStatus('loading', 'กำลังตรวจสอบ...');
-        try {
-            const response = await new Promise(resolve => {
-                chrome.runtime.sendMessage({ action: 'CHECK_API_KEY', apiKey: key, provider: aiProvider.value }, resolve);
-            });
-            if (response && response.success) {
-                updateApiStatus('success');
-            } else {
-                updateApiStatus('error', response?.error || 'Key ไม่ถูกต้อง');
+        const processing = document.getElementById('imageProcessing')?.value || 'first_frame';
+        const queueItems = prompts.map((p, i) => {
+            let imgData = null;
+            if (activeMode === 'frame_to_video' && uploadedImages.length > 0) {
+                if (processing === 'first_frame') imgData = uploadedImages[0].base64;
+                else if (processing === 'one_per_prompt') imgData = uploadedImages[i]?.base64 || null;
+                else if (processing === 'cycle') imgData = uploadedImages[i % uploadedImages.length].base64;
             }
-        } catch (err) {
-            updateApiStatus('error', 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            return { prompt: p, image: imgData };
+        });
+
+        chrome.runtime.sendMessage({ action: 'START_QUEUE', items: queueItems, mode: activeMode });
+    });
+
+    // AI API Check
+    document.getElementById('btnCheckApi').addEventListener('click', async () => {
+        const key = apiKey.value.trim();
+        if (!key) return;
+        const icon = document.getElementById('apiStatusIcon');
+        const text = document.getElementById('apiStatusText');
+        
+        icon.innerText = '⏳';
+        text.innerText = 'กำลังตรวจสอบ...';
+        
+        const response = await new Promise(res => chrome.runtime.sendMessage({ action: 'CHECK_API_KEY', apiKey: key, provider: aiProvider.value }, res));
+        if (response?.success) {
+            icon.innerText = '✅';
+            text.innerText = 'API Key ใช้งานได้ปกติ';
+        } else {
+            icon.innerText = '❌';
+            text.innerText = response?.error || 'Key ไม่ถูกต้อง';
         }
     });
 
-    // Manual AI Enhance
-    const btnEnhanceManual = document.getElementById('btnEnhanceManual');
-    if (btnEnhanceManual) {
-        btnEnhanceManual.addEventListener('click', async () => {
-            const text = promptsText.value.trim();
-            const key = apiKey.value.trim();
-            if (!text || !key) { alert('กรุณากรอก Prompt และ Gemini API Key ก่อน'); return; }
+    // AI Enhance Manual
+    document.getElementById('btnEnhanceManual').addEventListener('click', async () => {
+        const text = promptsText.value.trim();
+        const key = apiKey.value.trim();
+        if (!text || !key) { alert('โปรดกรอก Prompt และ API Key'); return; }
 
-            btnEnhanceManual.innerText = '✨ กำลังขยายความ...';
-            btnEnhanceManual.disabled = true;
+        const btn = document.getElementById('btnEnhanceManual');
+        const editIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
+        btn.innerHTML = '✨ กำลังประมวลผล...';
+        btn.disabled = true;
 
-            const prompts = text.split('\n').map(p => p.trim()).filter(p => p.length > 0);
-            const enhanced = [];
+        const prompts = text.split('\n').filter(p => p.trim());
+        const enhanced = [];
+        for (const p of prompts) {
+            const res = await new Promise(res => chrome.runtime.sendMessage({ 
+                action: 'ENHANCE_PROMPT_PREVIEW', prompt: p, apiKey: key, vibe: defaultVibe.value, provider: aiProvider.value 
+            }, res));
+            enhanced.push(res?.success ? res.enhanced : p);
+        }
+        promptsText.value = enhanced.join('\n');
+        saveState();
+        btn.innerHTML = `${editIcon} ให้ AI ช่วยปรับปรุง`;
+        btn.disabled = false;
+    });
 
-            try {
-                for (const p of prompts) {
-                    const response = await new Promise(resolve => {
-                        chrome.runtime.sendMessage({
-                            action: 'ENHANCE_PROMPT_PREVIEW',
-                            prompt: p,
-                            apiKey: key,
-                            vibe: defaultVibe.value,
-                            provider: aiProvider.value
-                        }, resolve);
-                    });
-                    enhanced.push(response?.success ? response.enhanced : p);
-                }
-                promptsText.value = enhanced.join('\n');
-                saveState();
-            } catch (err) {
-                alert('AI Enhance ผิดพลาด: ' + err.message);
-            } finally {
-                btnEnhanceManual.innerText = '✨ AI Edit (Preview)';
-                btnEnhanceManual.disabled = false;
-            }
-        });
-    }
-
-    // Upload TXT
-    const btnUploadTxt = document.getElementById('uploadTxt');
-    if (btnUploadTxt) {
-        btnUploadTxt.addEventListener('click', () => {
-            const tempInput = document.createElement('input');
-            tempInput.type = 'file';
-            tempInput.accept = '.txt';
-            tempInput.onchange = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (re) => { promptsText.value = re.target.result; saveState(); };
-                reader.readAsText(file);
-            };
-            tempInput.click();
-        });
-    }
-
-    // Drop Zone
+    // Upload Files
     const handleFiles = (files) => {
-        if (!files || files.length === 0) return;
-        
-        let processedCount = 0;
-        const total = files.length;
-
+        if (!files) return;
+        let count = 0;
         Array.from(files).forEach(file => {
-            if (!file.type.startsWith('image/')) {
-                processedCount++;
-                return;
-            }
-
+            if (!file.type.startsWith('image/')) return;
             const reader = new FileReader();
             reader.onload = (e) => {
-                uploadedImages.push({
-                    name: file.name,
-                    base64: e.target.result
-                });
-                processedCount++;
-                if (processedCount === total) {
+                uploadedImages.push({ name: file.name, base64: e.target.result });
+                count++;
+                if (count === Array.from(files).filter(f => f.type.startsWith('image/')).length) {
                     renderImagePreviews();
                     saveState();
-                    dropZone.querySelector('span').innerText = `✅ เพิ่มรูปภาพสำเร็จ (${uploadedImages.length} รูป)`;
                 }
             };
             reader.readAsDataURL(file);
         });
     };
-
     dropZone.addEventListener('click', () => fileInput.click());
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+    dropZone.addEventListener('drop', (e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); });
     fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
 
-    // Listen for queue updates
-    chrome.runtime.onMessage.addListener((message) => {
-        if (message.action === 'QUEUE_UPDATED') updateQueueUI(message.queue);
+    document.getElementById('uploadTxt').addEventListener('click', () => {
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = '.txt';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (re) => { promptsText.value = re.target.result; saveState(); };
+            reader.readAsText(file);
+        };
+        input.click();
     });
 
-    // URL Check
-    const urlOverlay = document.getElementById('url-overlay');
-    const checkCurrentTab = async () => {
-        try {
-            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            urlOverlay.classList.toggle('hidden', !!(tab?.url?.includes('labs.google/fx/')));
-        } catch (err) { console.error(err); }
+    // Queue UI Logic
+    const getQueue = async () => (await chrome.storage.local.get('botState')).botState?.queue || [];
+    const updateQueueUI = (queue) => {
+        if (!queue || queue.length === 0) {
+            queueList.innerHTML = '<div class="empty-queue">ไม่มีงานในคิว</div>';
+            queueStatus.innerText = '0 กำลังรัน';
+            return;
+        }
+        const activeCount = queue.filter(q => q.status === 'running').length;
+        queueStatus.innerText = activeCount > 0 ? `${activeCount} กำลังรัน` : `${queue.length} งาน`;
+
+        queueList.innerHTML = queue.map(item => {
+            const isDone = item.status === 'completed';
+            const isRunning = ['running', 'typing', 'submitting'].includes(item.status);
+            const pct = isDone ? 100 : (item.percent || 0);
+            
+            // แปลงสถานะเป็นภาษาไทย
+            const statusLabels = {
+                'pending': 'รอคิว',
+                'running': 'กำลังรัน',
+                'typing': 'กำลังพิมพ์',
+                'submitting': 'กำลังส่ง',
+                'completed': 'สำเร็จ',
+                'failed': 'ล้มเหลว'
+            };
+            const statusLabel = statusLabels[item.status] || item.status;
+            
+            return `
+            <div class="queue-item status-${item.status}">
+                <div class="item-main">
+                    <div style="display:flex;align-items:center;gap:6px;min-width:0">
+                        ${isDone ? '<span class="status-icon status-icon--done">✓</span>' : '<span class="status-dot"></span>'}
+                        <span class="item-text">${item.prompt}</span>
+                    </div>
+                    <span class="item-status-tag">${statusLabel}</span>
+                </div>
+                <div class="item-progress">
+                    <div class="progress-track"><div class="progress-fill ${isRunning ? 'progress-fill--running' : ''}" style="width:${pct}%"></div></div>
+                    <span class="progress-label">${isDone ? '100%' : pct + '%'}</span>
+                </div>
+                ${item.error ? `
+                    <div style="font-size:10px; color:var(--danger); margin-top:8px; display:flex; align-items:flex-start; flex-direction:column; gap:4px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                            <span style="display:flex; align-items:center; gap:4px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                เกิดข้อผิดพลาด
+                            </span>
+                            <button class="btn-error-toggle" onclick="this.parentElement.nextElementSibling.classList.toggle('expanded')">ดูรายละเอียด</button>
+                        </div>
+                        <div class="item-error hidden" style="width:100%;">${item.error}</div>
+                    </div>
+                ` : ''}
+            </div>`;
+        }).join('');
     };
 
-    setInterval(checkCurrentTab, 1000);
-    await loadState();
-    await checkCurrentTab();
+    chrome.runtime.onMessage.addListener((m) => { if (m.action === 'QUEUE_UPDATED') updateQueueUI(m.queue); });
+
+    const urlOverlay = document.getElementById('url-overlay');
+    setInterval(async () => {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        urlOverlay.classList.toggle('hidden', !!(tab?.url?.includes('labs.google/fx/')));
+    }, 1000);
+
+    loadState();
 });

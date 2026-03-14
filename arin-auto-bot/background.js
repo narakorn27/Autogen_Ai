@@ -124,8 +124,7 @@ const processQueue = async () => {
     if (queue.length === 0) { isRunning = false; return; }
 
     isRunning = true;
-    const data = await chrome.storage.local.get('botState');
-    const concurrentCount = data.botState?.control.concurrentPrompts || 1;
+    const concurrentCount = 1; // บังคับให้รันทีละ 1 คิวเสมอ เพื่อไม่ให้หน้าเว็บรวน
 
     const pendingItems = queue.filter(item => item.status === 'pending');
     if (pendingItems.length === 0) {
@@ -146,7 +145,6 @@ const runItem = async (item) => {
     broadcastQueue();
 
     const data = await chrome.storage.local.get('botState');
-    const { delayMin, delayMax } = data.botState.control;
     const maxRetries = 3;
 
     try {
@@ -221,7 +219,8 @@ const runItem = async (item) => {
 
     broadcastQueue();
 
-    const delay = Math.floor(Math.random() * (delayMax - delayMin + 1) + delayMin) * 1000;
+    // หน่วงเวลาแบบสุ่ม 3 - 8 วินาที ก่อนรันคิวถัดไป เพื่อป้องกัน Rate Limit จาก Google Flow
+    const delay = Math.floor(Math.random() * (8 - 3 + 1) + 3) * 1000;
     await new Promise(resolve => setTimeout(resolve, delay));
 
     processQueue();
