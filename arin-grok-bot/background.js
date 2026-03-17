@@ -23,7 +23,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const newItems = message.items.map((item, index) => ({
             id: Date.now() + index,
             prompt: item.prompt,
-            image: item.image,
+            images: item.images || [],
             mode: message.mode,
             status: 'pending',
             percent: 0,
@@ -185,7 +185,7 @@ const runItem = async (item) => {
             promptId: item.id,
             mode: item.mode,
             settings,
-            image: item.image
+            images: item.images || []
         });
 
         if (response && response.success) {

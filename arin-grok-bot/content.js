@@ -26,7 +26,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // ─── Main Generation Flow ───
 const processGeneration = async (data) => {
-    const { prompt, promptId, mode, settings, image } = data;
+    const { prompt, promptId, mode, settings, images } = data;
 
     if (!window.location.href.includes('grok.com')) {
         throw new Error('คุณไม่ได้อยู่ในหน้า Grok');
@@ -39,9 +39,9 @@ const processGeneration = async (data) => {
     await humanSleep(300, 600);
     sendProgress(promptId, 0, 'typing');
 
-    // 1. Upload Image (If any)
-    if (image) {
-        try { await handleImageUpload(image); }
+    // 1. Upload Images (If any)
+    if (images && images.length > 0) {
+        try { await handleImageUpload(images); }
         catch (e) { throw new Error('อัปโหลดรูปภาพไม่สำเร็จ: ' + e.message); }
     }
 
@@ -49,22 +49,27 @@ const processGeneration = async (data) => {
     try { await applySettings(settings); } catch (e) { console.warn('Apply Settings failed:', e.message); }
 
     await humanSleep(300, 700);
-    tiptap.focus();
+    
+    // Re-fetch tiptap in case DOM changed
+    let activeTiptap = document.querySelector('div.tiptap.ProseMirror');
+    if (!activeTiptap) throw new Error('ไม่พบช่องกรอก Prompt หลังจากเปลี่ยนการตั้งค่า');
+    
+    activeTiptap.focus();
     await humanSleep(400, 900);
 
     // 3. Type Prompt
     try {
-        tiptap.innerHTML = ''; // clear first
+        activeTiptap.innerHTML = ''; // clear first
         document.execCommand('insertText', false, prompt);
     } catch(e) {
         // Fallback
-        tiptap.textContent = prompt;
-        tiptap.dispatchEvent(new Event('input', { bubbles: true }));
+        activeTiptap.textContent = prompt;
+        activeTiptap.dispatchEvent(new Event('input', { bubbles: true }));
     }
     
     await humanSleep(800, 1500);
 
-    const inserted = tiptap.textContent?.trim();
+    const inserted = activeTiptap.textContent?.trim();
     if (!inserted || inserted.length === 0) throw new Error('ไม่สามารถกรอก Prompt ลงใน editor ได้');
 
     sendProgress(promptId, 2, 'submitting');
@@ -91,9 +96,9 @@ const processGeneration = async (data) => {
 
 // ─── Auto Download ───
 const handleAutoDownload = async (prompt, settings, url) => {
-    const folder = settings?.saveFolder?.trim() || 'arin-grok-bot';
+    const folder = settings?.saveFolder?.trim() || '';
     const baseName = settings?.autoRename !== false ? sanitizeFilename(prompt) : `grok_${Date.now()}`;
-    const ext = url.includes('.mp4') || url.startsWith('blob:') ? '.mp4' : '.jpg'; // Assumes mp4 by default for video
+    const ext = url.includes('.mp4') || url.startsWith('blob:') ? '.mp4' : '.jpg';
     const filename = baseName + ext;
     
     console.log('Arin: Downloading:', filename);
@@ -172,36 +177,51 @@ const applySettings = async (settings) => {
     }
 };
 
-// ─── Image Upload ───
-const handleImageUpload = async (base64) => {
-    if (!base64) return;
+// ─── Image Upload (supports multiple images) ───
+const handleImageUpload = async (base64Array) => {
+    if (!base64Array || base64Array.length === 0) return;
     
-    // In Grok, the file input is name="files" and supports multiple
-    const fileInput = document.querySelector('input[type="file"][name="files"]');
+    // Normalize: accept single string or array
+    const images = Array.isArray(base64Array) ? base64Array : [base64Array];
     
-    if (!fileInput) {
-        // Fallback: click attach button to summon input if needed (usually it's already in DOM)
+    // Clear previous uploads first
+    const removeBtns = document.querySelectorAll('button[aria-label*="Remove"], button[aria-label*="remove"], button[aria-label*="Delete"], button[aria-label*="delete"]');
+    if (removeBtns && removeBtns.length > 0) {
+        for (const btn of removeBtns) {
+            await humanClick(btn);
+            await sleep(150);
+        }
+        await sleep(800);
+    }
+
+    // Find file input
+    let targetInput = document.querySelector('input[type="file"][name="files"]');
+    
+    if (!targetInput) {
         const attachBtn = document.querySelector('button[aria-label="Attach"]');
         if (attachBtn) {
             await humanClick(attachBtn);
             await sleep(500);
         }
+        targetInput = document.querySelector('input[type="file"][name="files"]');
     }
-
-    const targetInput = document.querySelector('input[type="file"][name="files"]');
+    
     if (!targetInput) throw new Error('ไม่พบช่องอัปโหลดไฟล์ของ Grok');
 
-    const res = await fetch(base64);
-    const blob = await res.blob();
-    const file = new File([blob], `ref_${Date.now()}.jpg`, { type: blob.type });
+    // Build DataTransfer with ALL images
     const dt = new DataTransfer();
-    dt.items.add(file);
+    for (let i = 0; i < images.length; i++) {
+        const res = await fetch(images[i]);
+        const blob = await res.blob();
+        const file = new File([blob], `ref_${Date.now()}_${i}.jpg`, { type: blob.type });
+        dt.items.add(file);
+    }
     
     targetInput.files = dt.files;
     targetInput.dispatchEvent(new Event('change', { bubbles: true }));
     
-    // wait for upload UI to appear
-    await humanSleep(1000, 2000);
+    // Wait longer for multiple images
+    await humanSleep(1000 + (images.length * 500), 2000 + (images.length * 500));
 };
 
 // ─── Wait for Element ───
@@ -220,14 +240,8 @@ const waitForGeneration = async (promptId, timeout = 180000, startTimestamp = Da
     const start = Date.now();
     let started = false;
     
-    // We will look for new videos added to the DOM after startTimestamp
-    const getNewestVideo = () => {
-        const videos = Array.from(document.querySelectorAll('video'));
-        // We could filter by attributes if necessary, but returning the last one usually works
-        return videos.length > 0 ? videos[videos.length - 1] : null;
-    };
-    
-    const initialVideosCount = document.querySelectorAll('video').length;
+    // Track initially existing videos
+    const initialVideos = Array.from(document.querySelectorAll('video')).map(v => v.src);
 
     while (Date.now() - start < timeout) {
         const bodyText = document.body.innerText;
@@ -236,13 +250,12 @@ const waitForGeneration = async (promptId, timeout = 180000, startTimestamp = Da
         if (bodyText.includes('rate limit') || bodyText.includes('daily limit')) throw new Error('DAILY_LIMIT');
         if (bodyText.includes('Something went wrong')) throw new Error('SERVER_ERROR');
 
-        // Check if generation finished by detecting a new video
-        const currentVideosCount = document.querySelectorAll('video').length;
-        if (currentVideosCount > initialVideosCount) {
-            const vid = getNewestVideo();
-            if (vid && vid.src) {
-                return vid.src; // Return URL for download
-            }
+        // Check if generation finished by detecting a completely new video src
+        const currentVideos = Array.from(document.querySelectorAll('video'));
+        const newVideo = currentVideos.find(v => v.src && !initialVideos.includes(v.src));
+        
+        if (newVideo && newVideo.src) {
+            return newVideo.src; // Return URL for download
         }
         
         // Progress simulation since Grok might not show exact %

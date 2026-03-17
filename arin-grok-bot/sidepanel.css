@@ -419,20 +419,144 @@ textarea {
     outline: none;
 }
 
-/* ─── Drop Zone ─── */
-.drop-zone {
-    border: 1px dashed rgba(255, 255, 255, 0.15);
-    border-radius: var(--radius-md);
-    padding: 20px;
-    text-align: center;
+/* ─── Custom Select (Dropdown) ─── */
+.custom-select {
+    position: relative;
+    width: 100%;
+    user-select: none;
+    font-family: 'Syne', sans-serif;
+    font-size: 12px;
+}
+
+.custom-select-trigger {
+    height: 40px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     cursor: pointer;
     transition: all 0.25s ease;
+}
+
+.custom-select.open .custom-select-trigger {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.12), inset 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.custom-select-value {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.custom-select-trigger .chevron {
+    transition: transform 0.25s ease;
+    stroke: rgba(255, 255, 255, 0.5);
+}
+
+.custom-select.open .custom-select-trigger .chevron {
+    transform: rotate(180deg);
+    stroke: var(--accent);
+}
+
+.custom-select-options {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: #12151a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-5px);
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.custom-select.open .custom-select-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.custom-option {
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.custom-option:hover {
+    background: #1a1e24;
+    color: var(--text-primary);
+}
+
+.custom-option.selected {
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.custom-option svg, .custom-select-value svg {
+    flex-shrink: 0;
+}
+
+/* ─── Drop Zone ─── */
+.drop-zone {
+    border: 2px dashed rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-md);
+    padding: 24px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
     background: rgba(0, 0, 0, 0.2);
+}
+
+.drop-zone-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.drop-zone-icon {
+    stroke: var(--text-secondary);
+    transition: all 0.3s ease;
+    margin-bottom: 4px;
 }
 
 .drop-zone:hover {
     border-color: var(--accent);
     background: var(--accent-dim);
+}
+
+.drop-zone:hover .drop-zone-icon {
+    stroke: var(--accent);
+    transform: translateY(-2px);
+}
+
+.drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(74, 222, 128, 0.12);
+    border-style: solid;
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.15), inset 0 0 20px rgba(74, 222, 128, 0.05);
+}
+
+.drop-zone.dragover .drop-zone-icon {
+    stroke: var(--accent);
+    transform: translateY(-4px);
+    filter: drop-shadow(0 0 6px rgba(74, 222, 128, 0.5));
 }
 
 /* ─── Toggle Row (เหมือนตัวอย่าง reference) ─── */

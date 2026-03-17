@@ -61,6 +61,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             apiKey.value = state.settings[`${aiProvider.value}_apiKey`] || state.settings.apiKey || '';
             defaultVibe.value = state.settings.defaultVibe || 'cinematic';
             
+            // Sync Custom Select UI
+            if (aspectRatio) {
+                const opt = document.querySelector(`.custom-option[data-value="${aspectRatio.value}"]`);
+                if (opt) {
+                    document.querySelectorAll('.custom-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    const triggerValue = document.querySelector('.custom-select-value');
+                    if(triggerValue) triggerValue.innerHTML = opt.innerHTML;
+                }
+            }
+            
 
 
             // Frame to Video Specific
@@ -167,6 +178,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // --- Events ---
+    // Custom Dropdown Logic
+    const ratioSelect = document.getElementById('ratioSelect');
+    if (ratioSelect) {
+        const trigger = ratioSelect.querySelector('.custom-select-trigger');
+        const triggerValue = ratioSelect.querySelector('.custom-select-value');
+        const options = ratioSelect.querySelectorAll('.custom-option');
+        
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            ratioSelect.classList.toggle('open');
+        });
+
+        options.forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                options.forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                triggerValue.innerHTML = opt.innerHTML;
+                aspectRatio.value = opt.dataset.value;
+                ratioSelect.classList.remove('open');
+                
+                // Dispatch change event to trigger saveState
+                aspectRatio.dispatchEvent(new Event('change'));
+            });
+        });
+
+        document.addEventListener('click', () => {
+            ratioSelect.classList.remove('open');
+        });
+    }
+
     // Tabs
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -199,9 +241,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         aspectRatio, resolution, duration];
     autoInputs.forEach(input => {
         if (!input) return;
-        input.addEventListener('change', saveState);
-        if (input.tagName === 'TEXTAREA' || input.type === 'text' || input.type === 'password') {
-            input.addEventListener('input', saveState);
+        if (input.id === 'aspectRatio') { // aspectRatio is hidden input now
+            input.addEventListener('change', saveState);
+        } else {
+            input.addEventListener('change', saveState);
+            if (input.tagName === 'TEXTAREA' || input.type === 'text' || input.type === 'password' || input.type === 'hidden') {
+                input.addEventListener('input', saveState);
+            }
         }
     });
 
@@ -240,18 +286,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         const text = promptsText.value.trim();
         if (!text) { alert('กรุณากรอก Prompt ก่อนเริ่มรัน'); return; }
 
-        let prompts = text.includes('\n\n') ? text.split(/\n\s*\n/) : text.split('\n');
-        prompts = prompts.map(p => p.trim()).filter(p => p.length > 0);
+        let prompts = [];
+        if (text.includes('---')) {
+            prompts = text.split(/---+/).map(p => p.trim()).filter(p => p.length > 0);
+        } else if (text.includes('\n\n\n')) {
+            prompts = text.split(/\n\s*\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
+        } else {
+            // Default to separating by double-newline, but let them choose.
+            // If they want to keep it as one prompt, they should run it once.
+            // Actually, if we just split by \n\n, it breaks multi-paragraph single prompts. 
+            // So default to single prompt if no --- or \n\n\n is used.
+            prompts = [text];
+        }
 
         const processing = document.getElementById('imageProcessing')?.value || 'first_frame';
         const queueItems = prompts.map((p, i) => {
-            let imgData = null;
+            let images = [];
             if (activeMode === 'frame_to_video' && uploadedImages.length > 0) {
-                if (processing === 'first_frame') imgData = uploadedImages[0].base64;
-                else if (processing === 'one_per_prompt') imgData = uploadedImages[i]?.base64 || null;
-                else if (processing === 'cycle') imgData = uploadedImages[i % uploadedImages.length].base64;
+                if (prompts.length === 1) {
+                    // Single prompt: send ALL images together
+                    images = uploadedImages.map(img => img.base64);
+                } else if (processing === 'first_frame') {
+                    images = [uploadedImages[0].base64];
+                } else if (processing === 'one_per_prompt') {
+                    if (uploadedImages[i]) images = [uploadedImages[i].base64];
+                } else if (processing === 'cycle') {
+                    images = [uploadedImages[i % uploadedImages.length].base64];
+                }
             }
-            return { prompt: p, image: imgData };
+            return { prompt: p, images };
         });
 
         chrome.runtime.sendMessage({ action: 'START_QUEUE', items: queueItems, mode: activeMode });
@@ -304,15 +367,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Upload Files
     const handleFiles = (files) => {
-        if (!files) return;
+        if (!files || files.length === 0) return;
         let count = 0;
-        Array.from(files).forEach(file => {
-            if (!file.type.startsWith('image/')) return;
+        const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (validFiles.length === 0) return;
+
+        validFiles.forEach(file => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 uploadedImages.push({ name: file.name, base64: e.target.result });
                 count++;
-                if (count === Array.from(files).filter(f => f.type.startsWith('image/')).length) {
+                if (count === validFiles.length) {
                     renderImagePreviews();
                     saveState();
                 }
@@ -320,11 +385,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             reader.readAsDataURL(file);
         });
     };
+
+    // Click to upload
     dropZone.addEventListener('click', () => fileInput.click());
-    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-    dropZone.addEventListener('drop', (e) => { e.preventDefault(); handleFiles(e.dataTransfer.files); });
-    fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
+
+    // --- Drag & Drop (document-level approach for side panel compatibility) ---
+    // We must handle drag at document level because Chrome side panels
+    // can be finicky about element-level drag events from OS file drops.
+    
+    document.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        // Check if dragging a file
+        if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+            e.dataTransfer.dropEffect = 'copy';
+            dropZone.classList.add('dragover');
+        }
+    });
+
+    document.addEventListener('dragleave', (e) => {
+        // Only remove highlight when leaving the document entirely
+        if (e.clientX <= 0 || e.clientY <= 0 || 
+            e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+            dropZone.classList.remove('dragover');
+        }
+    });
+
+    document.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dropZone.classList.remove('dragover');
+        
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            handleFiles(e.dataTransfer.files);
+        }
+    });
 
     document.getElementById('uploadTxt').addEventListener('click', () => {
         const input = document.createElement('input');
