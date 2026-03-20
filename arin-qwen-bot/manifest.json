@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Arin Qwen Auto Flow",
+  "version": "1.0",
+  "description": "Auto Image & Video on Qwen Chat - Arin Edition",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "scripting",
+    "activeTab",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://chat.qwen.ai/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://chat.qwen.ai/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "คลิกเพื่อเปิด Arin Qwen Auto Flow"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "Injected.js"
+      ],
+      "matches": [
+        "https://chat.qwen.ai/*"
+      ]
+    }
+  ]
+}
