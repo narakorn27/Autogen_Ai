@@ -41,8 +41,8 @@ const processGeneration = async (data) => {
         throw new Error('ไม่สามารถเปลี่ยนโหมดเป็น ' + mode + ' ได้: ' + e.message);
     }
 
-    // 2. Apply Aspect Ratio (If Image mode)
-    if (mode === 'Create Image' && settings?.aspectRatio) {
+    // 2. Apply Aspect Ratio (ทั้ง Image และ Video)
+    if (settings?.aspectRatio) {
         try {
             await setAspectRatio(settings.aspectRatio);
         } catch (e) {
@@ -162,32 +162,71 @@ const setGenerationMode = async (targetModeText) => {
 };
 
 // ─── Set Aspect Ratio ───
-const setAspectRatio = async (ratio) => { // e.g., "16:9" or "9:16"
-    // Find the ratio dropdown trigger near the input area
-    const inputArea = document.querySelector('.message-input-textarea')?.closest('.chat-input') || document.body;
-    
-    // Search for a dropdown trigger that contains ratio text like "16:9"
-    // Usually it's an ant-dropdown-trigger
-    const triggers = Array.from(document.querySelectorAll('.ant-dropdown-trigger'));
-    const ratioTrigger = triggers.find(t => t.textContent.includes(':') && (t.textContent.includes('16:9') || t.textContent.includes('9:16') || t.textContent.includes('1:1')));
+const setAspectRatio = async (ratio) => {
+    // จาก UI จริง: ratio button อยู่ที่ bottom bar ข้างๆ "Create Video"
+    // HTML: <div>16:9 ▲</div> หรือ ant-dropdown-trigger ที่มีข้อความ ratio
 
-    if (!ratioTrigger) return; // Might not exist if not in Image mode
+    await humanSleep(500, 800); // รอ mode switch settle ก่อน
+
+    // หา trigger ที่มีข้อความ ratio (1:1, 3:4, 4:3, 16:9, 9:16)
+    const RATIO_PATTERN = /^\s*(\d+:\d+)\s*[▲▼]?\s*$/;
+    const allTriggers = Array.from(document.querySelectorAll(
+        '.ant-dropdown-trigger, [class*="ratio"], [class*="aspect"]'
+    ));
     
-    if (ratioTrigger.textContent.includes(ratio)) return; // Already set
+    let ratioTrigger = allTriggers.find(el => {
+        const text = el.textContent.trim();
+        return /\d+:\d+/.test(text);
+    });
+
+    // Fallback: หาจาก bottom input bar โดยตรง
+    if (!ratioTrigger) {
+        const bottomBar = document.querySelector('.message-input-container, .chat-input-footer, .input-bottom-bar');
+        if (bottomBar) {
+            const els = Array.from(bottomBar.querySelectorAll('*'));
+            ratioTrigger = els.find(el => /\d+:\d+/.test(el.textContent.trim()) && el.children.length < 3);
+        }
+    }
+
+    if (!ratioTrigger) {
+        console.warn('Arin: Ratio trigger not found, skipping');
+        return;
+    }
+
+    // ถ้า ratio ตรงแล้ว ไม่ต้องทำอะไร
+    if (ratioTrigger.textContent.includes(ratio)) {
+        console.log('Arin: Ratio already set to', ratio);
+        return;
+    }
 
     await humanClick(ratioTrigger);
-    await humanSleep(300, 600);
+    await humanSleep(400, 700);
 
-    // Find the option in the opened dropdown menu
-    const menuItems = Array.from(document.querySelectorAll('.ant-dropdown-menu-item'));
-    const targetItem = menuItems.find(item => item.textContent.includes(ratio));
-
-    if (targetItem) {
-        await humanClick(targetItem);
-    } else {
-        document.body.click(); // Close if not found
+    // รอ dropdown โผล่
+    let targetItem = null;
+    const deadline = Date.now() + 3000;
+    while (!targetItem && Date.now() < deadline) {
+        // ดูจากรูป: options คือ li ใน dropdown ที่มีข้อความ "1:1", "3:4", "4:3", "16:9", "9:16"
+        const items = Array.from(document.querySelectorAll(
+            '.ant-dropdown:not(.ant-dropdown-hidden) li, ' +
+            '.ant-dropdown:not(.ant-dropdown-hidden) [class*="item"]'
+        ));
+        targetItem = items.find(el => el.textContent.trim() === ratio || el.textContent.includes(ratio));
+        if (!targetItem) await sleep(200);
     }
-    await humanSleep(500, 800);
+
+    if (!targetItem) {
+        console.warn('Arin: Ratio option', ratio, 'not found in dropdown');
+        document.body.click();
+        return;
+    }
+
+    await humanClick(targetItem);
+    await humanSleep(400, 600);
+    
+    // ปิด dropdown ถ้ายังค้าง
+    document.body.click();
+    await sleep(200);
 };
 
 
@@ -236,60 +275,68 @@ const waitForElement = async (selector, timeout = 8000, conditionFn = null) => {
 // ─── Wait for Generation ───
 const waitForGeneration = async (promptId, timeout = 240000, startTimestamp = Date.now(), mode) => {
     const start = Date.now();
-    let started = false;
-    
-    // Qwen appends new messages to the chat history.
-    // We count existing media elements to detect when new ones appear.
+    let maxSeenPct = 0;
+
     const getMediaElements = () => {
-        if (mode === 'Create Video') return Array.from(document.querySelectorAll('.chat-bubble video'));
-        return Array.from(document.querySelectorAll('.chat-bubble img.image-preview-image, .chat-bubble img[src^="http"]'));
+        if (mode === 'Create Video') {
+            return Array.from(document.querySelectorAll(
+                // ✅ ครอบคลุม blob: และ https: และ video element ทุกแบบ
+                'video[src], video source, .chat-bubble video, [class*="message"] video, [class*="video-player"] video'
+            )).filter(v => {
+                const src = v.src || v.querySelector?.('source')?.src || '';
+                return src.length > 0;
+            });
+        }
+        return Array.from(document.querySelectorAll(
+            '.chat-bubble img[src^="http"], .chat-bubble img[src^="blob:"], ' +
+            '[class*="message"] img[src^="http"], [class*="message"] img[src^="blob:"]'
+        ));
     };
 
     const initialMediaCount = getMediaElements().length;
+    console.log('Arin: Initial media count:', initialMediaCount);
 
     while (Date.now() - start < timeout) {
         const bodyText = document.body.innerText;
-        
-        // Error detection
-        if (bodyText.includes('rate limit') || bodyText.includes('daily limit') || bodyText.includes('has been exhausted')) throw new Error('DAILY_LIMIT');
-        if (bodyText.includes('Something went wrong') || bodyText.includes('Failed to generate')) throw new Error('SERVER_ERROR');
 
-        // Check for new media
-        const currentMediaElements = getMediaElements();
-        
-        if (currentMediaElements.length > initialMediaCount) {
-            // New media found. Get the last one.
-            const newMedia = currentMediaElements[currentMediaElements.length - 1];
-            if (newMedia && newMedia.src) {
-                // Wait a bit to ensure the source is fully loaded (especially for videos)
+        if (bodyText.includes('rate limit') || bodyText.includes('daily limit') || bodyText.includes('has been exhausted'))
+            throw new Error('[DAILY_LIMIT]');
+        if (bodyText.includes('Something went wrong') || bodyText.includes('Failed to generate'))
+            throw new Error('SERVER_ERROR');
+
+        // ─── Check new media ───
+        const currentMedia = getMediaElements();
+        if (currentMedia.length > initialMediaCount) {
+            const newEl = currentMedia[currentMedia.length - 1];
+            const src = newEl.src || newEl.querySelector?.('source')?.src || '';
+            if (src) {
+                console.log('Arin: Media found!', src.slice(0, 80));
                 await sleep(2000);
-                return newMedia.src;
+                sendProgress(promptId, 100, 'completed');
+                return src;
             }
         }
-        
-        // 1. Try to read real progress % from the latest UI bubble
+
+        // ─── Progress: อ่าน % จริงจาก UI ───
         let realPct = null;
-        const chatBubbles = document.querySelectorAll('.chat-bubble, .message-content, [class*="message"]');
-        if (chatBubbles.length > 0) {
-            // Check the last 1-2 bubbles
-            for (let i = Math.max(0, chatBubbles.length - 2); i < chatBubbles.length; i++) {
-                const pctMatch = chatBubbles[i].innerText.match(/(\d+)%/);
-                if (pctMatch && parseInt(pctMatch[1]) > 0 && parseInt(pctMatch[1]) <= 100) {
-                    realPct = parseInt(pctMatch[1]);
-                }
+        const allBubbles = document.querySelectorAll(
+            '.chat-bubble, [class*="message-content"], [class*="generation-progress"]'
+        );
+        for (let i = Math.max(0, allBubbles.length - 3); i < allBubbles.length; i++) {
+            const match = allBubbles[i].innerText?.match(/(\d+)%/);
+            if (match) {
+                const pct = parseInt(match[1]);
+                if (pct > 0 && pct <= 100) realPct = pct;
             }
         }
 
         if (Date.now() - start > 3000) {
-            started = true;
-            if (realPct !== null) {
-                // Use real percent parsed from screen
-                sendProgress(promptId, Math.min(99, realPct), 'running');
-            } else {
-                // Fallback: Progress simulation
-                let fakePct = Math.min(95, 10 + Math.floor((Date.now() - start) / 3000));
-                sendProgress(promptId, fakePct, 'running');
-            }
+            let currentPct = realPct !== null
+                ? Math.min(99, realPct)
+                : Math.min(95, 10 + Math.floor((Date.now() - start) / 3000));
+
+            maxSeenPct = Math.max(maxSeenPct, currentPct);
+            sendProgress(promptId, maxSeenPct, 'running');
         }
 
         await sleep(1500);
