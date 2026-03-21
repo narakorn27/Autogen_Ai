@@ -11,7 +11,8 @@
     "downloads"
   ],
   "host_permissions": [
-    "*://*.meta.ai/*"
+    "*://*.meta.ai/*",
+    "https://ar.paragonlandth.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -40,7 +41,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["injected.js"],
+      "resources": ["Injected.js"],
       "matches": ["*://*.meta.ai/*"]
     }
   ]

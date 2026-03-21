@@ -1,0 +1,7 @@
+# ── Root .htaccess ──
+Options -Indexes
+RewriteEngine On
+
+# บังคับ HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]

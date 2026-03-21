@@ -26,6 +26,36 @@
             </div>
         </div>
 
+        <!-- License Gate -->
+        <div id="license-gate" class="license-overlay hidden">
+            <div class="license-card">
+                <div class="logo-circle">🔒</div>
+                <h2>Activate License</h2>
+                <p>กรุณากรอก License Key เพื่อเข้าใช้งานบอท</p>
+                
+                <div class="input-group">
+                    <input type="text" id="licenseKeyInput" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19">
+                </div>
+                
+                <button id="btnActivate" class="btn-primary w-full">เข้าสู่ระบบ</button>
+                
+                <div id="licenseStatus" class="status-msg"></div>
+                
+                <div class="license-footer">
+                    <p>ยังไม่มี License? <a href="https://t.me/your_contact" target="_blank">ติดต่อแอดมิน</a></p>
+                    <small id="machineIdDisplay"></small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Drop Overlay -->
+        <div id="drop-overlay" class="drop-overlay hidden">
+            <div class="drop-overlay-content">
+                <div class="drop-icon">➕</div>
+                <div class="drop-text">วางรูปภาพที่นี่เพื่อสร้างวิดีโอ</div>
+            </div>
+        </div>
+
         <!-- Header -->
         <header>
             <div class="logo-area">
@@ -95,12 +125,7 @@
                         </select>
                     </div>
 
-                    <!-- Row 5: Model Selection -->
-                    <div class="mode-row model-picker">
-                        <select id="quickModel" class="chip-select">
-                            <!-- Injected by JS -->
-                        </select>
-                    </div>
+
                 </div>
 
 
