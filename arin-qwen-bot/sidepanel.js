@@ -21,7 +21,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const defaultVibe = document.getElementById('defaultVibe');
     const aspectRatio = document.getElementById('aspectRatio');
 
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const imageProcessing = document.getElementById('imageProcessing');
+    const imagePreviews = document.getElementById('image-previews');
+
     let activeMode = 'Create Image';
+    let uploadedImages = [];
 
     // --- State Management ---
     const loadState = async () => {
@@ -44,6 +50,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             updateProviderUI(aiProvider.value);
             apiKey.value = state.settings[`${aiProvider.value}_apiKey`] || state.settings.apiKey || '';
             defaultVibe.value = state.settings.defaultVibe || 'cinematic';
+            
+            uploadedImages = state.control.uploadedImages || [];
+            if (imageProcessing) imageProcessing.value = state.control.imageProcessing || 'first_frame';
+            renderImagePreviews();
             
             // Sync Custom Select UI
             if (aspectRatio) {
@@ -73,7 +83,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 aiEnhance: aiEnhance.checked,
                 saveFolder: saveFolder.value,
                 autoRename: autoRename.checked,
-                autoDownload: autoDownload ? autoDownload.checked : true
+                autoDownload: autoDownload ? autoDownload.checked : true,
+                imageProcessing: imageProcessing?.value || 'first_frame',
+                uploadedImages: uploadedImages
             },
             settings: {
                 ...oldSettings,
@@ -99,6 +111,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             const badgeLabels = { gemini: 'Gemini 2.0', groq: 'Groq Fast', openrouter: 'OpenRouter' };
             activeAiBadge.innerText = badgeLabels[provider] || provider;
         }
+    };
+
+    const renderImagePreviews = () => {
+        if (!imagePreviews) return;
+        imagePreviews.innerHTML = '';
+        if (uploadedImages.length === 0) { 
+            imagePreviews.classList.add('hidden'); 
+            return; 
+        }
+        imagePreviews.classList.remove('hidden');
+        imagePreviews.style.display = 'grid';
+
+        uploadedImages.forEach((img, index) => {
+            const div = document.createElement('div');
+            div.className = 'preview-item';
+            div.innerHTML = `
+                <img src="${img.base64}" alt="${img.name}" title="${img.name}">
+                <button class="remove-btn" data-index="${index}">×</button>
+                <div class="index-badge">#${index + 1}</div>
+            `;
+            imagePreviews.appendChild(div);
+        });
+
+        imagePreviews.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.onclick = (e) => {
+                const idx = parseInt(e.target.dataset.index);
+                uploadedImages.splice(idx, 1);
+                renderImagePreviews();
+                saveState();
+            };
+        });
     };
 
     // --- Events ---
@@ -201,8 +244,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             prompts = [text];
         }
 
+        const processing = imageProcessing?.value || 'first_frame';
         const queueItems = prompts.map((p, i) => {
-            return { prompt: p, images: [] };
+            let imgData = null;
+            if (uploadedImages.length > 0) {
+                if (processing === 'first_frame') imgData = uploadedImages[0].base64;
+                else if (processing === 'one_per_prompt') imgData = uploadedImages[i]?.base64 || null;
+                else if (processing === 'cycle') imgData = uploadedImages[i % uploadedImages.length].base64;
+            }
+            return { prompt: p, images: imgData ? [imgData] : [] };
         });
 
         chrome.runtime.sendMessage({ action: 'START_QUEUE', items: queueItems, mode: generationMode.value });
@@ -251,6 +301,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.innerHTML = `✨ ให้ AI ช่วยปรับปรุง`;
         btn.disabled = false;
     });
+
+    // Upload Files Handling
+    const handleFiles = (files) => {
+        if (!files || files.length === 0) return;
+        let count = 0;
+        const validFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (validFiles.length === 0) return;
+        
+        validFiles.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImages.push({ name: file.name, base64: e.target.result });
+                count++;
+                if (count === validFiles.length) {
+                    renderImagePreviews();
+                    saveState();
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => { 
+            e.preventDefault(); 
+            dropZone.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files); 
+        });
+        fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+    }
 
     document.getElementById('uploadTxt').addEventListener('click', () => {
         const input = document.createElement('input');

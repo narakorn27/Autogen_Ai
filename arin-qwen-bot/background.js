@@ -38,6 +38,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         queue = [];
         isRunning = false;
         broadcastQueue();
+        chrome.tabs.query({}, tabs => tabs.forEach(t => chrome.tabs.sendMessage(t.id, { action: 'STOP_GENERATION' }).catch(() => {})));
 
     } else if (message.action === 'PROGRESS_UPDATE') {
         const item = queue.find(q => q.id === message.promptId);
@@ -63,6 +64,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else if (message.action === 'PAUSE_QUEUE') {
         isRunning = false;
         broadcastQueue();
+        chrome.tabs.query({}, tabs => tabs.forEach(t => chrome.tabs.sendMessage(t.id, { action: 'STOP_GENERATION' }).catch(() => {})));
     } else if (message.action === 'RESUME_QUEUE') {
         if (!isRunning) processQueue();
     } else if (message.action === 'RETRY_FAILED') {
