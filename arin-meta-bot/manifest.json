@@ -8,7 +8,8 @@
     "sidePanel",
     "scripting",
     "activeTab",
-    "downloads"
+    "downloads",
+    "alarms"
   ],
   "host_permissions": [
     "*://*.meta.ai/*",

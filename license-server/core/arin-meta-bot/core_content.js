@@ -86,47 +86,15 @@ const humanClick = async (element) => {
     await humanSleep(150, 300);
 };
 
-const insertTextViaClipboard = async (el, text) => {
-    el.focus();
-    await humanSleep(400, 700);
-
-    // เคลียร์ก่อน
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', code: 'KeyA', ctrlKey: true, bubbles: true }));
-    await sleep(120);
-    el.dispatchEvent(new KeyboardEvent('keyup', { key: 'a', code: 'KeyA', ctrlKey: true, bubbles: true }));
-    await sleep(120);
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', code: 'Backspace', bubbles: true }));
-    await sleep(150);
-    el.dispatchEvent(new KeyboardEvent('keyup', { key: 'Backspace', code: 'Backspace', bubbles: true }));
-    await humanSleep(300, 500);
-
-    // Paste
-    const dt = new DataTransfer();
-    dt.setData('text/plain', text);
-    const pasteEvent = new ClipboardEvent('paste', {
-        bubbles: true, cancelable: true, clipboardData: dt
-    });
-    el.dispatchEvent(pasteEvent);
-    await humanSleep(600, 900);
-};
-
-const insertTextViaInput = async (el, text) => {
+const insertTextLexical = async (el, text) => {
     el.focus();
     await humanSleep(300, 500);
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', ctrlKey: true, bubbles: true }));
+    // เคลียร์ข้อความเดิมแบบปลอดภัยต่อ React
+    document.execCommand('selectAll', false, null);
+    document.execCommand('delete', false, null);
     await sleep(100);
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true }));
-    await sleep(200);
-
-    el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-    el.dispatchEvent(new CompositionEvent('compositionupdate', { bubbles: true, data: text }));
-    el.dispatchEvent(new InputEvent('input', {
-        bubbles: true, inputType: 'insertCompositionText', data: text, isComposing: true
-    }));
-    el.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: text }));
-    el.dispatchEvent(new InputEvent('input', {
-        bubbles: true, inputType: 'insertText', data: text, isComposing: false
-    }));
+    // ใส่ข้อความใหม่
+    document.execCommand('insertText', false, text);
     await humanSleep(500, 800);
 };
 
@@ -460,14 +428,7 @@ const processGeneration = async (data) => {
         chatInput.dispatchEvent(new Event('change', { bubbles: true }));
         await humanSleep(500, 800);
     } else {
-        await insertTextViaClipboard(chatInput, fullPrompt);
-
-        // ตรวจว่าใส่สำเร็จ
-        const textInserted = (chatInput.innerText || '').trim().length > 0;
-        if (!textInserted) {
-            console.warn('[Arin] Clipboard paste failed, trying input event fallback');
-            await insertTextViaInput(chatInput, fullPrompt);
-        }
+        await insertTextLexical(chatInput, fullPrompt);
     }
 
     // ตรวจอีกรอบ

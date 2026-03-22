@@ -56,11 +56,25 @@
             </div>
         </div>
 
+        <!-- ═══ Main Content Wrapper (ซ่อนจนกว่า License ผ่าน) ═══ -->
+        <div id="main-content-wrapper" class="hidden">
+
         <!-- Header -->
         <header>
             <div class="logo-area">
                 <h1>🤖 Arin Meta Bot</h1>
                 <span class="version">v1.0</span>
+            </div>
+            <!-- License Status Bar -->
+            <div id="licenseStatusBar" class="license-status-bar">
+                <div class="license-status-left">
+                    <span class="license-dot active"></span>
+                    <span class="license-plan" id="licensePlanName">Free Trial</span>
+                </div>
+                <div class="license-status-right">
+                    <span class="license-days" id="licenseDaysLeft">— วัน</span>
+                    <button class="btn-logout-mini" id="btnLogout" title="ออกจากระบบ">⎋</button>
+                </div>
             </div>
             <div class="tabs">
                 <button class="tab-btn active" data-tab="control">ควบคุม</button>
@@ -305,6 +319,7 @@
                 </div>
             </section>
         </main>
+        </div> <!-- /main-content-wrapper -->
     </div>
     <script src="sidepanel.js"></script>
 </body>
