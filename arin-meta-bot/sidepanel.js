@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (btnLogout) {
         btnLogout.onclick = async () => {
             if (!confirm('ต้องการออกจากระบบใช่ไหม?')) return;
-            await chrome.storage.local.remove(['licenseInfo', 'coreCode']);
+            await chrome.storage.local.remove(['licenseInfo', 'licenseVerified']);
             if (mainWrapper) mainWrapper.classList.add('hidden');
             if (licenseGate) licenseGate.classList.remove('hidden');
             if (inputKey) inputKey.value = '';
@@ -99,10 +99,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // อัปเดต License Status Bar
                 updateLicenseStatusBar(result.expires_at, result.plan || 'Standard');
 
-                // ส่ง code ไปเก็บใน background
+                // ส่งสัญญาณ license verified ไป background
                 chrome.runtime.sendMessage({ 
                     action: 'LICENSE_VERIFIED', 
-                    code: result.code,
                     key: key,
                     mId: mId
                 });
@@ -135,8 +134,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (daysLeft > 0) {
                     showStatus('ออฟไลน์ — ใช้ License เดิมต่อ', 'success');
                     updateLicenseStatusBar(cached.licenseInfo.expires_at, cached.licenseInfo.plan || 'Standard');
+                    
+                    // ส่งสัญญาณ license verified ไป background (เพื่อ relay LICENSE_OK ไป content script)
+                    chrome.runtime.sendMessage({ 
+                        action: 'LICENSE_VERIFIED', 
+                        key: cached.licenseInfo.key,
+                        mId: mId
+                    });
+                    
                     if (licenseGate) licenseGate.classList.add('hidden');
                     if (mainWrapper) mainWrapper.classList.remove('hidden');
+                    initMainUI();
                     return true;
                 }
             }
@@ -272,7 +280,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             // Model
             updateModelOptions(activeType);
-            quickModel.value = (activeType === 'image' ? state.settings.imageModel : state.settings.videoModel) || modelsByType[activeType][0].value;
+            if (quickModel) quickModel.value = (activeType === 'image' ? state.settings.imageModel : state.settings.videoModel) || modelsByType[activeType][0].value;
 
             // Frame to Video Specific
             uploadedImages = state.control.uploadedImages || [];
@@ -320,9 +328,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (activeType === 'image') {
-            botState.settings.imageModel = quickModel.value;
+            botState.settings.imageModel = quickModel ? quickModel.value : null;
         } else {
-            botState.settings.videoModel = quickModel.value;
+            botState.settings.videoModel = quickModel ? quickModel.value : null;
         }
 
         botState.settings[`${aiProvider.value}_apiKey`] = apiKey.value;
@@ -339,7 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const updateModelOptions = (type) => {
-        quickModel.innerHTML = modelsByType[type].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
+        if (quickModel) quickModel.innerHTML = modelsByType[type].map(m => `<option value="${m.value}">${m.label}</option>`).join('');
     };
 
     const updateModeLogic = () => {
@@ -476,12 +484,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         const processing = document.getElementById('imageProcessing')?.value || 'first_frame';
         const queueItems = prompts.map((p, i) => {
             let imgData = null;
+            let imagesArray = [];
             if (activeMode === 'frame_to_video' && uploadedImages.length > 0) {
-                if (processing === 'first_frame') imgData = uploadedImages[0].base64;
-                else if (processing === 'one_per_prompt') imgData = uploadedImages[i]?.base64 || null;
-                else if (processing === 'cycle') imgData = uploadedImages[i % uploadedImages.length].base64;
+                if (processing === 'first_frame') {
+                    imgData = uploadedImages[0].base64;
+                    imagesArray = [uploadedImages[0].base64];
+                } else if (processing === 'one_per_prompt') {
+                    imgData = uploadedImages[i]?.base64 || null;
+                    imagesArray = imgData ? [imgData] : [];
+                } else if (processing === 'cycle') {
+                    imgData = uploadedImages[i % uploadedImages.length].base64;
+                    imagesArray = [imgData];
+                } else if (processing === 'all_images') {
+                    // ส่งรูปทั้งหมดไปพร้อมกัน
+                    imagesArray = uploadedImages.map(img => img.base64);
+                    imgData = imagesArray[0] || null;
+                }
             }
-            return { prompt: p, image: imgData };
+            return { prompt: p, image: imgData, images: imagesArray };
         });
 
         chrome.runtime.sendMessage({ action: 'START_QUEUE', items: queueItems, mode: activeMode });
@@ -615,13 +635,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                                 เกิดข้อผิดพลาด
                             </span>
-                            <button class="btn-error-toggle" onclick="this.parentElement.nextElementSibling.classList.toggle('expanded')">ดูรายละเอียด</button>
+                            <button class="btn-error-toggle" data-toggle-error="true">ดูรายละเอียด</button>
                         </div>
-                        <div class="item-error hidden" style="width:100%;">${item.error}</div>
+                        <div class="item-error" style="width:100%; display:none;">${item.error}</div>
                     </div>
                 ` : ''}
             </div>`;
         }).join('');
+
+        // ─── Event delegation: ปุ่ม "ดูรายละเอียด" (ห้ามใช้ inline onclick ใน MV3) ───
+        queueList.querySelectorAll('[data-toggle-error]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const errorDiv = btn.parentElement.nextElementSibling;
+                if (errorDiv) {
+                    const isVisible = errorDiv.style.display !== 'none';
+                    errorDiv.style.display = isVisible ? 'none' : 'block';
+                    btn.textContent = isVisible ? 'ดูรายละเอียด' : 'ซ่อน';
+                }
+            });
+        });
     };
 
     chrome.runtime.onMessage.addListener((m) => { if (m.action === 'QUEUE_UPDATED') updateQueueUI(m.queue); });

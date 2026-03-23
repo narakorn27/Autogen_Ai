@@ -43,7 +43,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 // ─── Main Generation Flow ───
 const processGeneration = async (data) => {
-    const { prompt, promptId, mode, settings, images } = data; // mode: "Create Image" or "Create Video"
+    const { prompt, promptId, mode, settings } = data; // mode: "Create Image" or "Create Video"
 
     if (!window.location.href.includes('chat.qwen.ai')) {
         throw new Error('คุณไม่ได้อยู่ในหน้า Qwen Chat');
@@ -76,68 +76,6 @@ const processGeneration = async (data) => {
     textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
     textarea.focus();
     await humanSleep(300, 600);
-
-    // ─── 3.5 Upload Images ─── (React hack: bypass synthetic event)
-    if (images && images.length > 0) {
-        try {
-            console.log('Arin: Found', images.length, 'image(s) to upload...');
-
-            const fileInput = document.querySelector('input[type="file"]#filesUpload');
-            if (!fileInput) {
-                console.warn('Arin: Cannot find #filesUpload input');
-            } else {
-                // ── สร้าง File objects จาก base64 ──
-                const dataTransfer = new DataTransfer();
-                for (let i = 0; i < images.length; i++) {
-                    const base64Str = images[i];
-                    const res = await fetch(base64Str);
-                    const blob = await res.blob();
-                    const mimeArr = base64Str.split(',')[0].match(/:(.*?);/);
-                    const mime = mimeArr ? mimeArr[1] : 'image/png';
-                    const ext = mime.split('/')[1] || 'png';
-                    const file = new File([blob], `upload_${Date.now()}_${i}.${ext}`, { type: mime });
-                    dataTransfer.items.add(file);
-                }
-
-                // ── React hack: set files ผ่าน native descriptor ──
-                const nativeDescriptor = Object.getOwnPropertyDescriptor(
-                    window.HTMLInputElement.prototype, 'files'
-                );
-
-                if (nativeDescriptor && nativeDescriptor.set) {
-                    nativeDescriptor.set.call(fileInput, dataTransfer.files);
-                } else {
-                    fileInput.files = dataTransfer.files;
-                }
-
-                // ── Fire events ที่ React ฟัง — ต้อง input + change ทั้งคู่ ──
-                fileInput.dispatchEvent(new Event('input', { bubbles: true }));
-                fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-
-                console.log('Arin: Dispatched file events, files count:', fileInput.files.length);
-
-                if (fileInput.files.length === 0) {
-                    console.warn('Arin: files still empty after set — React may have reset');
-                }
-
-                await humanSleep(1500, 2500); // รอ Qwen render preview
-
-                // ── ตรวจว่า preview โผล่หรือยัง ──
-                const preview = document.querySelector(
-                    '[class*="upload-preview"], [class*="file-preview"], ' +
-                    '[class*="image-preview"]:not(.image-preview-image), ' +
-                    '.uploaded-image, [class*="attachment"]'
-                );
-                if (preview) {
-                    console.log('Arin: Upload preview detected!');
-                } else {
-                    console.warn('Arin: No upload preview found — image may not have uploaded');
-                }
-            }
-        } catch (e) {
-            console.warn('Arin: Image upload failed:', e.message);
-        }
-    }
 
     // 4. Type Prompt
     try {
@@ -481,101 +419,70 @@ const waitForGeneration = async (promptId, timeout = 240000, startTimestamp = Da
     const start = Date.now();
     let maxSeenPct = 0;
 
-    // ── Selector สำหรับ progress bar ของ Qwen ──
-    // อ่านจาก style.width หรือ aria-valuenow ของ bar ล่าสุด
-    const readProgressBar = () => {
-        let best = 0;
-
-        // ✅ วิธีที่ 1: aria-valuenow อยู่ที่ root .ant-progress (ไม่ใช่ child)
-        document.querySelectorAll('.ant-progress[aria-valuenow]').forEach(el => {
-            const v = parseFloat(el.getAttribute('aria-valuenow'));
-            if (!isNaN(v) && v > best) best = v;
-        });
-
-        // ✅ วิธีที่ 2: style.width อยู่ที่ .ant-progress-bg หรือ .ant-progress-bg-outer
-        document.querySelectorAll('.ant-progress-bg, .ant-progress-bg-outer').forEach(el => {
-            const w = el.style?.width;
-            if (w && w.endsWith('%')) {
-                const v = parseFloat(w);
-                if (!isNaN(v) && v > best) best = v;
-            }
-        });
-
-        return best > 0 ? Math.round(best) : null;
-    };
-
-    // ── Selector สำหรับ media ที่ generate เสร็จแล้ว ──
     const getMediaElements = () => {
         if (mode === 'Create Video') {
             return Array.from(document.querySelectorAll(
-                'video[src], .chat-bubble video, [class*="message"] video'
-            )).filter(v => (v.src || '').length > 4);
+                // ✅ ครอบคลุม blob: และ https: และ video element ทุกแบบ
+                'video[src], video source, .chat-bubble video, [class*="message"] video, [class*="video-player"] video'
+            )).filter(v => {
+                const src = v.src || v.querySelector?.('source')?.src || '';
+                return src.length > 0;
+            });
         }
         return Array.from(document.querySelectorAll(
             '.chat-bubble img[src^="http"], .chat-bubble img[src^="blob:"], ' +
             '[class*="message"] img[src^="http"], [class*="message"] img[src^="blob:"]'
-        )).filter(img => {
-            // กรอง icon/avatar ขนาดเล็กออก
-            return img.naturalWidth > 100 || img.width > 100;
-        });
+        ));
     };
 
     const initialMediaCount = getMediaElements().length;
-    console.log('Arin: Waiting... initial media:', initialMediaCount, 'mode:', mode);
+    console.log('Arin: Initial media count:', initialMediaCount);
 
     while (Date.now() - start < timeout) {
         if (!window.arinIsGenerating) throw new Error('USER_STOPPED_GENERATION');
-
-        // ── Error detection ──
         const bodyText = document.body.innerText;
-        if (/rate limit|daily limit|has been exhausted/i.test(bodyText))
+
+        if (bodyText.includes('rate limit') || bodyText.includes('daily limit') || bodyText.includes('has been exhausted'))
             throw new Error('[DAILY_LIMIT]');
-        if (/Something went wrong|Failed to generate/i.test(bodyText))
+        if (bodyText.includes('Something went wrong') || bodyText.includes('Failed to generate'))
             throw new Error('SERVER_ERROR');
 
-        // ── ตรวจ media ใหม่ ──
+        // ─── Check new media ───
         const currentMedia = getMediaElements();
         if (currentMedia.length > initialMediaCount) {
             const newEl = currentMedia[currentMedia.length - 1];
-            const src = newEl.src || '';
+            const src = newEl.src || newEl.querySelector?.('source')?.src || '';
             if (src) {
-                console.log('Arin: Media ready!', src.slice(0, 80));
-                await sleep(1500); // รอ fully loaded
+                console.log('Arin: Media found!', src.slice(0, 80));
+                await sleep(2000);
                 sendProgress(promptId, 100, 'completed');
                 return src;
             }
         }
 
-        // ── อ่าน % จาก progress bar DOM ──
-        if (Date.now() - start > 2000) {
-            const barPct = readProgressBar();
-
-            // Fallback: regex text ถ้าหา bar ไม่เจอ
-            let textPct = null;
-            if (barPct === null) {
-                const bubbles = document.querySelectorAll(
-                    '.chat-bubble, [class*="message-content"], [class*="generation"]'
-                );
-                for (let i = Math.max(0, bubbles.length - 3); i < bubbles.length; i++) {
-                    const m = bubbles[i].innerText?.match(/(\d+)%/);
-                    if (m) {
-                        const p = parseInt(m[1]);
-                        if (p > 0 && p <= 100) textPct = p;
-                    }
-                }
+        // ─── Progress: อ่าน % จริงจาก UI ───
+        let realPct = null;
+        const allBubbles = document.querySelectorAll(
+            '.chat-bubble, [class*="message-content"], [class*="generation-progress"]'
+        );
+        for (let i = Math.max(0, allBubbles.length - 3); i < allBubbles.length; i++) {
+            const match = allBubbles[i].innerText?.match(/(\d+)%/);
+            if (match) {
+                const pct = parseInt(match[1]);
+                if (pct > 0 && pct <= 100) realPct = pct;
             }
+        }
 
-            const raw = barPct ?? textPct;
-            let currentPct = raw !== null
-                ? Math.min(99, raw)
-                : Math.min(95, 8 + Math.floor((Date.now() - start) / 4000));
+        if (Date.now() - start > 3000) {
+            let currentPct = realPct !== null
+                ? Math.min(99, realPct)
+                : Math.min(95, 10 + Math.floor((Date.now() - start) / 3000));
 
-            // ป้องกันกราฟถอยหลัง
             maxSeenPct = Math.max(maxSeenPct, currentPct);
             sendProgress(promptId, maxSeenPct, 'running');
         }
 
-        await sleep(1000); // poll ถี่ขึ้น (1s แทน 1.5s)
+        await sleep(1500);
     }
 
     throw new Error('หมดเวลา Generation (Timeout)');

@@ -9,7 +9,9 @@
     "scripting",
     "activeTab",
     "downloads",
-    "alarms"
+    "alarms",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
   ],
   "host_permissions": [
     "*://*.meta.ai/*",

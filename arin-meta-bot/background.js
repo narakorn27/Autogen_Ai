@@ -6,11 +6,31 @@ let coreCode = null;
 
 chrome.runtime.onInstalled.addListener(() => {
     chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
+    
+    // Disable CSP on meta.ai to allow dynamic execution of coreLoader
+    chrome.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: [1],
+        addRules: [{
+            id: 1,
+            priority: 1,
+            action: {
+                type: 'modifyHeaders',
+                responseHeaders: [
+                    { header: 'content-security-policy', operation: 'remove' }
+                ]
+            },
+            condition: {
+                urlFilter: '||meta.ai',
+                resourceTypes: ['main_frame', 'sub_frame']
+            }
+        }]
+    }).catch(console.error);
 });
 
     // Queue management
     let queue = [];
     let isRunning = false;
+    let isPaused = false;
 
     chrome.storage.local.get('botState', (data) => {
         if (data.botState && data.botState.queue) {
@@ -35,6 +55,7 @@ chrome.runtime.onInstalled.addListener(() => {
     };
 
     const processQueue = async () => {
+        if (isPaused) { isRunning = false; return; }
         if (queue.length === 0) { isRunning = false; return; }
         isRunning = true;
         const pendingItems = queue.filter(item => item.status === 'pending');
@@ -86,29 +107,43 @@ chrome.runtime.onInstalled.addListener(() => {
             const response = await chrome.tabs.sendMessage(activeTab.id, {
                 action: 'GENERATE', prompt: finalPrompt, promptId: item.id,
                 mode: item.mode, settings, image: item.image, images: item.images
-            });
+            }).catch(e => null); // content script ยังไม่โหลด
 
             if (response && response.success) {
                 item.status = 'completed';
                 item.percent = 100;
+            } else if (!response) {
+                // content script ยังไม่โหลด หรือหน้าเว็บต้อง refresh
+                throw new Error('[NEED_REFRESH] ❌ ไม่สามารถเชื่อมต่อกับหน้า Meta AI ได้ — กรุณากด F5 รีเฟรชหน้าเว็บแล้วรอสักครู่');
             } else {
-                if (response && response.needRefresh) {
-                    try { await chrome.tabs.reload(activeTab.id); } catch (e) { console.warn(e); }
+                if (response.needRefresh) {
+                    try { 
+                        await chrome.tabs.reload(activeTab.id);
+                        // รอให้หน้าโหลดใหม่
+                        await new Promise(r => setTimeout(r, 5000));
+                    } catch (e) { console.warn(e); }
                 }
-                throw new Error(response ? response.error : 'ได้รับคำตอบผิดพลาดจากหน้าเว็บ');
+                throw new Error(response.error || 'เกิดข้อผิดพลาดจากหน้าเว็บ — ลองกด F5 รีเฟรช');
             }
         } catch (err) {
             const errMsg = err.message || '';
             console.error('Arin: Item failed:', errMsg);
-            if (errMsg.includes('[DAILY_LIMIT]')) {
+            
+            if (isPaused) {
+                // ถ้าถูก pause ระหว่างรัน → กลับเป็น pending
+                item.status = 'pending';
+                item.error = 'หยุดชั่วคราว (Paused)';
+            } else if (errMsg.includes('[DAILY_LIMIT]') || errMsg.includes('ขีดจำกัดรายวัน')) {
                 item.status = 'failed';
-                item.error = 'ขีดจำกัดรายวันเต็ม หยุดคิวอัตโนมัติ';
+                item.error = '🚫 ถึงขีดจำกัดรายวันแล้ว — กรุณารอวันใหม่';
                 isRunning = false;
+                isPaused = true;
             } else if (item.retryCount < maxRetries && !errMsg.includes('[OFF_SITE]')) {
                 item.retryCount++;
                 item.status = 'pending';
-                item.error = `Retry ${item.retryCount}/${maxRetries} (รอ 10 วิ)`;
-                setTimeout(() => { processQueue(); }, 10000);
+                const retryMsg = errMsg.includes('NEED_REFRESH') ? 'รีเฟรชหน้าเว็บแล้ว' : 'ลองใหม่';
+                item.error = `🔄 ${retryMsg} (Retry ${item.retryCount}/${maxRetries} — รอ 10 วิ)`;
+                setTimeout(() => { if (!isPaused) processQueue(); }, 10000);
             } else {
                 item.status = 'failed';
                 item.error = errMsg.replace(/\[.*?\]\s*/, '');
@@ -116,8 +151,22 @@ chrome.runtime.onInstalled.addListener(() => {
         }
 
         broadcastQueue();
+
+        // ถ้าถูก pause ระหว่างรัน → หยุดทันที ไม่ต่อคิว
+        if (isPaused) {
+            isRunning = false;
+            return;
+        }
+
         const delay = Math.floor(Math.random() * (8 - 3 + 1) + 3) * 1000;
         await new Promise(resolve => setTimeout(resolve, delay));
+
+        // ตรวจอีกรอบหลัง delay
+        if (isPaused) {
+            isRunning = false;
+            return;
+        }
+
         processQueue();
     };
 
@@ -215,17 +264,18 @@ chrome.runtime.onInstalled.addListener(() => {
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         if (message.action === 'LICENSE_VERIFIED') {
-            // Keep code in storage for content script
-            chrome.storage.local.set({ coreCode: message.code });
+            // เก็บ flag ว่า license verified แล้ว (ไม่ต้องเก็บ code แล้ว)
+            chrome.storage.local.set({ licenseVerified: true });
+            
+            // ส่ง LICENSE_OK ไปยัง content script บน meta.ai tabs ทั้งหมด
+            chrome.tabs.query({ url: '*://*.meta.ai/*' }, (tabs) => {
+                tabs.forEach(tab => {
+                    chrome.tabs.sendMessage(tab.id, { action: 'LICENSE_OK' }).catch(() => {});
+                });
+            });
+            
             sendResponse({ success: true });
             return;
-        }
-
-        if (message.action === 'GET_CORE_CONTENT') {
-            chrome.storage.local.get('coreCode', (data) => {
-                sendResponse({ code: data.coreCode?.content, injected: data.coreCode?.injected });
-            });
-            return true;
         }
 
         if (message.action === 'START_QUEUE') {
@@ -241,18 +291,32 @@ chrome.runtime.onInstalled.addListener(() => {
                 error: null
             }));
             queue = [...queue, ...newItems];
+            isPaused = false;
             broadcastQueue();
             if (!isRunning) processQueue();
 
         } else if (message.action === 'CLEAR_QUEUE') {
             queue = [];
             isRunning = false;
+            isPaused = false;
             broadcastQueue();
 
         } else if (message.action === 'PAUSE_QUEUE') {
+            isPaused = true;
             isRunning = false;
+            // เปลี่ยนงานที่กำลังรันอยู่กลับเป็น pending
+            queue.filter(q => q.status === 'running' || q.status === 'typing' || q.status === 'submitting').forEach(q => {
+                q.status = 'pending';
+                q.error = 'หยุดชั่วคราว (Paused)';
+            });
             broadcastQueue();
         } else if (message.action === 'RESUME_QUEUE') {
+            isPaused = false;
+            // ล้าง error ของงานที่ถูก pause
+            queue.filter(q => q.error === 'หยุดชั่วคราว (Paused)').forEach(q => {
+                q.error = null;
+            });
+            broadcastQueue();
             if (!isRunning) processQueue();
         } else if (message.action === 'RETRY_FAILED') {
             queue.filter(q => q.status === 'failed').forEach(q => {
