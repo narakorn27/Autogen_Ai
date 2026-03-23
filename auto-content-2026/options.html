@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตั้งค่าระบบ (Auto Content 2026 Settings)</title>
+    <link rel="stylesheet" href="options.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>⚙️ Auto Content 2026 Settings</h1>
+                <p>ตั้งค่า API Keys และการเปิดเชื่อมต่อเพจ Facebook แบบไม่จำกัดจำนวน</p>
+            </div>
+        </header>
+
+        <main>
+            <!-- ท่อน AI API Key -->
+            <section class="settings-card">
+                <h2>🔑 AI Providers (Text & Image)</h2>
+                
+                <div class="form-group mb-15">
+                    <label>Default AI Provider (สำหรับเขียนคอนเทนต์)</label>
+                    <select id="defaultAiProvider" class="select-lg">
+                        <option value="gemini">Google Gemini (Recommended for Image/Text)</option>
+                        <option value="groq">Groq (Ultra-Fast Text Inference)</option>
+                        <option value="openrouter">OpenRouter (Multi-model access)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Gemini API Key <span class="badge required">จำเป็นสำหรับสร้างภาพ</span></label>
+                    <input type="password" id="geminiApiKey" placeholder="AIzaSy...">
+                </div>
+                <div class="form-group mt-15">
+                    <label>Groq API Key <span class="badge optional">ตัวเลือก</span></label>
+                    <input type="password" id="groqApiKey" placeholder="gsk_...">
+                    <small>รวดเร็วมาก ฟรี Text generation (Llama 3, Mixtral)</small>
+                </div>
+                <div class="form-group mt-15">
+                    <label>OpenRouter API Key <span class="badge optional">ตัวเลือก</span></label>
+                    <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-...">
+                    <small>ศูนย์รวมโมเดล AI กว่า 100+ ตัว</small>
+                </div>
+            </section>
+
+            <!-- ท่อน Data API -->
+            <section class="settings-card mt-20">
+                <h2>📡 Data API (สืบค้นเนื้อหา)</h2>
+                <div class="form-group">
+                    <label>TMDB API Key <span class="badge optional">ตัวเลือกเสริม</span></label>
+                    <input type="password" id="tmdbApiKey" placeholder="v3 auth key สำหรับดึงข้อมูลหนัง">
+                    <small>ใช้สำหรับ Content รีวิวหนัง หากตึงข่าวอย่างเดียวไม่ต้องใส่ก็ได้ครับ</small>
+                </div>
+            </section>
+
+            <!-- ท่อน Facebook Pages Placeholder -->
+            <section class="settings-card mt-20">
+                <div class="flex-between">
+                    <h2>📄 Facebook Pages (จัดการเพจ)</h2>
+                    <button class="btn-secondary" id="btnAddPage">+ เพิ่มเพจใหม่</button>
+                </div>
+                <p class="summary-text mt-10">
+                    ระบบเพิ่ม/ลบเพจด้วย Long-lived Token จะถูกออกแบบและเขียนรวมใน Phase 8<br>
+                    ระบบรองรับการเชื่อมต่อและสั่งการได้ 100+ เพจพร้อมกัน
+                </p>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-actions">
+                <span class="save-status" id="saveStatus"></span>
+                <button class="btn-primary" id="btnSave">💾 บันทึกการตั้งค่าระบบ</button>
+            </div>
+        </footer>
+    </div>
+    <script src="options.js"></script>
+</body>
+</html>

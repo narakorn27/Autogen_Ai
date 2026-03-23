@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Auto Content 2026",
+  "version": "1.0",
+  "description": "ระบบสร้างและโพสต์คอนเทนต์ Facebook อัตโนมัติ",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "alarms",
+    "offscreen",
+    "notifications",
+    "downloads"
+  ],
+  "host_permissions": [
+    "*://trends.google.com/*",
+    "*://api.themoviedb.org/*",
+    "*://graph.facebook.com/*",
+    "*://generativelanguage.googleapis.com/*",
+    "*://*.reddit.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "options_page": "options.html",
+  "action": {
+    "default_title": "คลิกเพื่อเปิด Auto Content 2026"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

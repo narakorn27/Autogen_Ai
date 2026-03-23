@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Content 2026</title>
+    <link rel="stylesheet" href="sidepanel.css">
+    <!-- Google Fonts: Prompt for Thai UI, Syne for Modern headings, JetBrains Mono for Code/Logs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Syne:wght@400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo-area">
+                <h1>🚀 Auto Content</h1>
+                <span class="version">2026</span>
+            </div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="trends">📡 Trends</button>
+                <button class="tab-btn" data-tab="compose">✍️ Compose</button>
+                <button class="tab-btn" data-tab="queue">📋 Queue</button>
+                <button class="tab-btn" data-tab="log">📊 Log</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- TAB 1: Trends -->
+            <section id="trends-tab" class="tab-content active">
+                <div class="filter-bar">
+                    <div class="field-row">
+                        <select id="trendSource" class="select-sm">
+                            <option value="google_trends">🔥 Google Trends</option>
+                            <option value="tmdb" disabled>🎬 TMDB Movies (Phase 3)</option>
+                            <option value="ai_news" disabled>🤖 AI News (Phase 3)</option>
+                        </select>
+                        <select id="trendGeo" class="select-sm">
+                            <option value="TH">🇹🇭 TH</option>
+                            <option value="US">🇺🇸 US</option>
+                            <option value="GB">🇬🇧 GB</option>
+                            <option value="JP">🇯🇵 JP</option>
+                        </select>
+                        <button class="btn-primary-sm" id="btnFetchTrends">ดึงข้อมูล</button>
+                    </div>
+                </div>
+                
+                <div class="news-list-container" id="newsListContainer">
+                    <p class="placeholder-text">กดปุ่ม "ดึงข้อมูล" เพื่อดูเทรนด์ล่าสุด</p>
+                </div>
+
+                <div class="actions mt-10" id="trendsActions" style="display: none;">
+                    <div class="selected-count" id="selectedNewsCount">เลือก 0 รายการ</div>
+                    <button class="btn-primary" id="btnSendToCompose">✍️ สร้างโพสต์ AI</button>
+                </div>
+            </section>
+
+            <!-- TAB 2: Compose -->
+            <section id="compose-tab" class="tab-content">
+                <div class="section">
+                    <h3>สร้างโพสต์ (AI Composer)</h3>
+                    <p class="placeholder-text">กำลังออกแบบพื้นที่เขียนโพสต์ด้วย Gemini ใน Phase ถัดไป...</p>
+                </div>
+            </section>
+
+            <!-- TAB 3: Queue -->
+            <section id="queue-tab" class="tab-content">
+                <div class="section">
+                    <h3>คิวโพสต์ล่วงหน้า</h3>
+                    <p class="placeholder-text">ไม่มีงานตั้งเวลาในคิว</p>
+                </div>
+            </section>
+
+            <!-- TAB 4: Log -->
+            <section id="log-tab" class="tab-content">
+                <div class="section">
+                    <h3>ประวัติการทำงาน</h3>
+                    <div class="log-container" id="logContainer">
+                        <div class="log-item info">
+                            <span class="time">[12:00]</span> เริ่มต้นระบบ Auto Content 2026
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <button class="btn-secondary w-full" id="btnOpenSettings">⚙️ ตั้งค่าระบบ (Settings)</button>
+        </footer>
+    </div>
+    <script src="lib/trends.js"></script>
+    <script src="sidepanel.js"></script>
+</body>
+</html>
