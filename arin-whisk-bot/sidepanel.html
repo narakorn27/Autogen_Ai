@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arin Whisk Bot</title>
+    <link rel="stylesheet" href="sidepanel.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+
+        <!-- URL Overlay -->
+        <div id="url-overlay" class="url-overlay hidden">
+            <div class="overlay-content">
+                <svg class="overlay-icon" viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+                <h2>กรุณาเปิดหน้า Google Whisk</h2>
+                <p>บอทจะทำงานได้เฉพาะบนหน้า <strong>labs.google/fx/tools/whisk</strong> เท่านั้น</p>
+                <a class="btn-primary" href="https://labs.google/fx/tools/whisk" target="_blank">ไปหน้า Whisk</a>
+            </div>
+        </div>
+
+        <!-- License Gate -->
+        <div id="license-gate" class="license-overlay hidden">
+            <div class="license-card">
+                <div class="logo-circle"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0f0f17" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4.1l-2.1 2.1-1.4-1.4-2.1 2.1a1 1 0 0 0 0 1.4L15.5 7.5Z"></path><path d="M2.5 21.5 13 11"></path><path d="M22 2 20 4"></path><path d="M2 22 4 20"></path><path d="M6 14.5 9.5 18"></path></svg></div>
+                <h2>Activate License</h2>
+                <p>กรุณากรอก License Key เพื่อเข้าใช้งาน Arin Whisk Bot</p>
+                
+                <div class="input-group">
+                    <input type="text" id="licenseKeyInput" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19">
+                </div>
+                
+                <button id="btnActivate" class="btn-primary w-full">เข้าสู่ระบบ</button>
+                
+                <div id="licenseStatus" class="status-msg"></div>
+                
+                <div class="license-footer">
+                    <p>ยังไม่มี License? <a href="https://t.me/your_contact" target="_blank">ติดต่อแอดมิน</a></p>
+                    <small id="machineIdDisplay"></small>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Main Content Wrapper ═══ -->
+        <div id="main-content-wrapper" class="hidden">
+
+        <!-- Header -->
+        <header>
+            <div class="logo-area">
+                <h1><svg width="20" height="20" style="vertical-align:text-bottom;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.118 14.702L9.5 5.5l-1.382-1.382a2.36 2.36 0 0 0-3.337 0L2 6.899l9.643 8.358 4.293 4.293a2.36 2.36 0 0 0 3.337 0l1.382-1.382a2.36 2.36 0 0 0 0-3.336z"></path><path d="M5.5 9.5L9.5 5.5"></path><path d="M20.5 4a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"></path></svg>Arin Whisk Bot</h1>
+                <span class="version">v1.0</span>
+            </div>
+            <!-- License Status Bar -->
+            <div id="licenseStatusBar" class="license-status-bar">
+                <div class="license-status-left">
+                    <span class="license-dot active"></span>
+                    <span class="license-plan" id="licensePlanName">Free Trial</span>
+                </div>
+                <div class="license-status-right">
+                    <span class="license-days" id="licenseDaysLeft">— วัน</span>
+                    <button class="btn-logout-mini" id="btnLogout" title="ออกจากระบบ">⎋</button>
+                </div>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="control"><svg width="14" height="14" style="vertical-align:text-bottom;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg>ควบคุม</button>
+                <button class="tab-btn" data-tab="settings"><svg width="14" height="14" style="vertical-align:text-bottom;margin-right:4px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>ตั้งค่า</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- TAB 1: Control -->
+            <section id="control-tab" class="tab-content active">
+
+                <!-- ═══ Whisk Upload Grid (Subject / Scene / Style) ═══ -->
+                <div class="section whisk-upload-section">
+                    <label class="section-title">
+                        <svg class="icon-sm" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                        อัปโหลดรูปภาพ
+                    </label>
+                    <div class="whisk-upload-grid">
+                        <!-- Subject -->
+                        <div class="upload-card" id="subjectCard">
+                            <div class="upload-card-header">
+                                <svg class="upload-emoji" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                                <span>Subject</span>
+                            </div>
+                            <div class="upload-card-body" id="subjectDrop" data-target="subject">
+                                <div class="upload-placeholder" id="subjectPlaceholder">
+                                    <span class="upload-plus">+</span>
+                                    <small>ตัวแบบ / วัตถุ</small>
+                                </div>
+                                <img class="upload-preview-img hidden" id="subjectPreview" alt="Subject">
+                                <button class="upload-remove hidden" id="subjectRemove" data-target="subject">×</button>
+                            </div>
+                            <input type="file" id="subjectInput" accept="image/*" hidden>
+                        </div>
+
+                        <!-- Scene -->
+                        <div class="upload-card" id="sceneCard">
+                            <div class="upload-card-header">
+                                <svg class="upload-emoji" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                                <span>Scene</span>
+                            </div>
+                            <div class="upload-card-body" id="sceneDrop" data-target="scene">
+                                <div class="upload-placeholder" id="scenePlaceholder">
+                                    <span class="upload-plus">+</span>
+                                    <small>ฉาก / สถานที่</small>
+                                </div>
+                                <img class="upload-preview-img hidden" id="scenePreview" alt="Scene">
+                                <button class="upload-remove hidden" id="sceneRemove" data-target="scene">×</button>
+                            </div>
+                            <input type="file" id="sceneInput" accept="image/*" hidden>
+                        </div>
+
+                        <!-- Style -->
+                        <div class="upload-card" id="styleCard">
+                            <div class="upload-card-header">
+                                <svg class="upload-emoji" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8.5v2"></path><path d="M16 8.5v2"></path><path d="M12 18s2.5 2 4 2 4-2 4-2v-4c0-4-2-6-4-6-1.5 0-2.5 1-4 2-1.5-1-2.5-2-4-2-2 0-4 2-4 6v4s2.5 2 4 2 1.5-2 4-2z"></path></svg>
+                                <span>Style</span>
+                            </div>
+                            <div class="upload-card-body" id="styleDrop" data-target="style">
+                                <div class="upload-placeholder" id="stylePlaceholder">
+                                    <span class="upload-plus">+</span>
+                                    <small>สไตล์ / ลุค</small>
+                                </div>
+                                <img class="upload-preview-img hidden" id="stylePreview" alt="Style">
+                                <button class="upload-remove hidden" id="styleRemove" data-target="style">×</button>
+                            </div>
+                            <input type="file" id="styleInput" accept="image/*" hidden>
+                        </div>
+                    </div>
+                    <div class="hint-text" style="margin-top:8px; font-size:10px; opacity:0.7; border:none; padding:0;">
+                        💡 เลือกอย่างน้อย 1 รูป หรือใส่ทั้ง 3 ระบบจะผสมให้อัตโนมัติ
+                    </div>
+                </div>
+
+                <!-- Settings: Aspect Ratio -->
+                <div class="section mt-10">
+                    <div class="field">
+                        <label style="margin:0;display:flex;align-items:center;gap:4px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            Aspect Ratio (สัดส่วนภาพ)
+                        </label>
+                        <select id="aspectRatio" style="margin-top: 6px;">
+                            <option value="1:1">1:1 (สี่เหลี่ยมจัตุรัส)</option>
+                            <option value="9:16">9:16 (แนวตั้ง)</option>
+                            <option value="16:9">16:9 (แนวนอน)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Prompts -->
+                <div class="section">
+                    <div class="flex-between" style="align-items: center; margin-bottom: 8px;">
+                        <label style="margin:0;display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 5-3-3H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7l-5-5Z"></path><path d="M14 2v4h4"></path><path d="M9 15h6"></path><path d="M9 11h6"></path><path d="M9 19h4"></path></svg> Prompt (เพิ่มเติม)</label>
+                        <button class="btn-upload-txt" id="uploadTxt">
+                            <svg class="icon-sm" viewBox="0 0 24 24">
+                                <path
+                                    d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zM13 3.5L18.5 9H13V3.5zM12 18l-4-4h2.5v-3h3v3H16l-4 4z" />
+                            </svg>
+                            อัปโหลด .txt
+                        </button>
+                    </div>
+                    <textarea id="promptsText"
+                        placeholder="A cute orange cat wearing space suit eating sushi&#10;(1 prompt ต่อบรรทัด — ใส่รูปด้านบนก่อน)"></textarea>
+                    <div class="ai-enhance-card mt-10">
+                        <div class="ai-magic-header">
+                            <div class="flex-align-center gap-6">
+                                <svg class="sparkle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+                                <span class="ai-title">AI Enhance Prompt</span>
+                            </div>
+                            <div class="ai-badge" id="activeAiBadge">Groq Fast</div>
+                        </div>
+                        <div class="ai-action-row">
+                            <button class="btn-enhance-magic" id="btnEnhanceManual"
+                                title="ให้ AI ช่วยแต่ง Prompt ให้สวยขึ้น">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                ให้ AI ช่วยปรับปรุง
+                            </button>
+                            <div class="auto-enhance-control">
+                                <span class="label-xs">รันอัตโนมัติ</span>
+                                <label class="switch sm">
+                                    <input type="checkbox" id="aiEnhance">
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Output -->
+                <div class="section">
+                    <div class="field" style="margin-bottom: 0;">
+                        <label style="display:flex; align-items:center; gap:4px;">
+                            <svg class="icon-sm" viewBox="0 0 24 24">
+                                <path
+                                    d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z" />
+                            </svg>
+                            บันทึกโฟลเดอร์
+                        </label>
+                        <input type="text" id="saveFolder" placeholder="ชื่อโฟลเดอร์ (ไม่ต้องใส่ /)">
+                        <div class="hint-text mt-5"
+                            style="border:none; padding-left:0; font-size:10px; line-height:1.4; opacity:0.8;">
+                            ระบบจะสร้างโฟลเดอร์ย่อยใน <strong>Downloads</strong> อัตโนมัติ<br>
+                            *หากเว้นว่างไว้ จะบันทึกลง Downloads โดยตรง
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="toggle-row">
+                        <label class="toggle-label" style="display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> ดาวน์โหลดอัตโนมัติ</label>
+                        <label class="switch">
+                            <input type="checkbox" id="autoDownload" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <label class="toggle-label" style="display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg> เปลี่ยนชื่อไฟล์อัตโนมัติ</label>
+                        <label class="switch">
+                            <input type="checkbox" id="autoRename" checked>
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- คิว -->
+                <div class="section queue-area">
+                    <div class="flex-between">
+                        <h3>คิว Prompt</h3>
+                        <span class="status-badge" id="queueStatus">0 กำลังรัน</span>
+                    </div>
+                    <div class="queue-list" id="queueList">
+                        <div class="empty-queue">ไม่มีงานในคิว</div>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn-secondary" id="btnClear" style="display:flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg> ล้าง</button>
+                    <button class="btn-secondary" id="btnPause" style="display:flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg> หยุด</button>
+                    <button class="btn-secondary hidden" id="btnResume" style="display:flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> ต่อ</button>
+                    <button class="btn-secondary" id="btnRetryFailed" style="display:flex;align-items:center;gap:4px;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg> ลองใหม่</button>
+                    <button class="btn-primary" id="btnRun" style="display:flex;align-items:center;gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> เริ่มรัน</button>
+                </div>
+
+            </section>
+
+            <!-- TAB 2: Setting -->
+            <section id="settings-tab" class="tab-content">
+                <div class="section">
+                    <h3 style="display:flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8.01" y2="16"></line><line x1="16" y1="16" x2="16.01" y2="16"></line></svg> AI Integration</h3>
+                    <div class="field">
+                        <label>AI Provider</label>
+                        <select id="aiProvider">
+                            <option value="groq">Groq (Fast)</option>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="openrouter">OpenRouter (Multiple)</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label id="apiKeyLabel">Groq API Key</label>
+                        <div class="api-input-group">
+                            <input type="password" id="apiKey" placeholder="กรอก API Key สำหรับ AI Enhance">
+                            <button id="btnCheckApi" class="btn-check-api" title="ตรวจสอบ API Key">
+                                <span class="api-status-icon" id="apiStatusIcon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
+                            </button>
+                        </div>
+                        <div id="apiStatusText" class="api-status-text">กรุณาตรวจสอบความถูกต้องของ Key</div>
+                    </div>
+
+                </div>
+                <div class="section" style="padding-top: 8px;">
+                    <button type="button" class="btn-primary btn-save-settings" id="btnSaveSettings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                        บันทึกการตั้งค่า</button>
+                    <span class="save-feedback hidden" id="saveFeedback">บันทึกแล้ว</span>
+                </div>
+            </section>
+        </main>
+        </div> <!-- /main-content-wrapper -->
+    </div>
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>

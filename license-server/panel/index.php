@@ -145,6 +145,7 @@ $stats = $db->query("SELECT
                         <option value="arin-grok-bot">Arin Grok Bot</option>
                         <option value="arin-auto-bot">Arin Auto Bot</option>
                         <option value="arin-qwen-bot">Arin Qwen Bot</option>
+                        <option value="arin-whisk-bot">Arin Whisk Bot</option>
                     </select>
                 </div>
                 <div class="field">

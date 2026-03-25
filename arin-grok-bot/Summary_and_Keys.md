@@ -41,7 +41,10 @@
 (เน้นความเร็ว ตอบโต้ไว)
 **Key:** 
 `New: gsk_oXF9uTp60UP915HXnc3qWGdyb3FYPMlU7wPXmCH75dU5CGTa8VmmNew`
+gsk_QCevbe1SMhl1wmBKkHgGWGdyb3FYZskssc9X6eaJlj5ILByP1ADkNew;
+
 - URL ตรวจเช็ค: https://console.groq.com/keys
+
 
 
 
