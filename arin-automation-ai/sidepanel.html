@@ -54,6 +54,32 @@
             </div>
             <div id="basicSettings" class="section-content px-3 pb-3 border-t border-[#2a2a3a]">
                 <div class="grid grid-cols-2 gap-3 mt-3">
+                    <!-- Flow: Output Type -->
+                    <div class="col-span-2 hidden mb-1" data-app="flow" id="flowOutputTypeContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="layers" class="w-3 h-3 text-blue-400"></i> ประเภทผลลัพธ์ (เริ่มตั้งค่าจากตรงนี้)</label>
+                        <div class="flex p-1 rounded-lg gap-1 border" style="background-color:#12121a;border-color:#2a2a3a;">
+                            <button type="button" id="btnFlowTypeImage" class="flex-1 py-1.5 text-xs font-medium rounded-md flex justify-center items-center gap-1.5 transition cursor-pointer" style="color:#6b7280;border:1px solid transparent;">
+                                🖼️ รูปภาพ
+                            </button>
+                            <button type="button" id="btnFlowTypeVideo" class="flex-1 py-1.5 text-xs font-semibold rounded-md shadow flex justify-center items-center gap-1.5 cursor-pointer" style="background-color:#1a1a24;color:#60a5fa;border:1px solid #60a5fa;">
+                                🎬 วิดีโอ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Flow: Video Mode -->
+                    <div class="col-span-2 hidden mb-1" data-app="flow" id="flowVideoModeContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="film" class="w-3 h-3 text-purple-400"></i> สร้างวิดีโอจากอะไร?</label>
+                        <div class="flex p-1 rounded-lg gap-1 border" style="background-color:#12121a;border-color:#2a2a3a;">
+                            <button type="button" id="btnVideoModeText" class="flex-1 py-1.5 text-xs font-semibold rounded-md shadow flex justify-center items-center gap-1.5 cursor-pointer" style="background-color:#1a1a24;color:#c084fc;border:1px solid #c084fc;">
+                                📝 ข้อความ
+                            </button>
+                            <button type="button" id="btnVideoModeFrame" class="flex-1 py-1.5 text-xs font-medium rounded-md flex justify-center items-center gap-1.5 transition cursor-pointer" style="color:#6b7280;border:1px solid transparent;">
+                                🖼️ รูปและข้อความ
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- สัดส่วน -->
                     <div data-app="both">
                         <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="crop" class="w-3 h-3"></i> สัดส่วน</label>
@@ -63,13 +89,14 @@
                             <option value="16:9" style="background-color: #1a1a24;">16:9 (แนวนอน)</option>
                         </select>
                     </div>
-                    <!-- จำนวนคลิป -->
-                    <div data-app="flow" class="hidden">
-                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="film" class="w-3 h-3"></i> จำนวนคลิป <span class="text-gray-500 text-[10px]">(แนะนำ 1-2)</span></label>
+                    <!-- จำนวนผลลัพธ์ -->
+                    <div data-app="flow" class="hidden" id="flowOutputCountContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="copy" class="w-3 h-3"></i> จำนวนผลลัพธ์ <span class="text-gray-500 text-[10px]">(แนะนำ 2-3)</span></label>
                         <select id="clipCount" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
-                            <option value="2" style="background-color: #1a1a24;">2 คลิป ⭐</option>
-                            <option value="1" style="background-color: #1a1a24;">1 คลิป</option>
-                            <option value="4" style="background-color: #1a1a24;">4 คลิป</option>
+                            <option value="1" style="background-color: #1a1a24;">1 รายการ</option>
+                            <option value="2" style="background-color: #1a1a24;" selected>2 รายการ ⭐</option>
+                            <option value="3" style="background-color: #1a1a24;">3 รายการ</option>
+                            <option value="4" style="background-color: #1a1a24;">4 รายการ</option>
                         </select>
                     </div>
                     <!-- นายแบบ/นางแบบ -->
@@ -109,8 +136,18 @@
                             </div>
                         </label>
                     </div>
+                    <!-- โมเดลรูปภาพ (Flow Only) -->
+                    <div class="col-span-2 hidden" data-app="flow" id="flowImageModelContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="image" class="w-3 h-3 text-blue-400"></i> โมเดลรูปภาพ</label>
+                        <select id="flowImageModel" class="w-full rounded-md p-2 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="imagen_4" style="background-color: #1a1a24;">Imagen 4</option>
+                            <option value="banana_nano_pro" style="background-color: #1a1a24;">Nano Banana Pro</option>
+                            <option value="banana_nano_2" style="background-color: #1a1a24;">Nano Banana 2</option>
+                        </select>
+                    </div>
+                    
                     <!-- โมเดลวิดีโอ -->
-                    <div class="col-span-2 hidden" data-app="flow">
+                    <div class="col-span-2 hidden" data-app="flow" id="flowVideoModelContainer">
                         <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="clapperboard" class="w-3 h-3" style="color:#e8c84a;"></i> โมเดลวิดีโอ</label>
                         <select id="videoModel" class="w-full rounded-md p-2 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
                             <option value="veo31_fast" style="background-color: #1a1a24;">Veo 3.1 - Fast (ใช้เครดิต)</option>

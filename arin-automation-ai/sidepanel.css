@@ -274,3 +274,17 @@ input[type="checkbox"]:not(.toggle-switch input) {
 .icon-gold { color: #d4af37; }
 .icon-white { color: #e2e8f0; }
 .icon-dim { color: #6b7280; }
+
+/* ── App UI Overrides ── */
+body[data-current-app="flow"] .image-box-style {
+    display: none !important;
+}
+body[data-current-app="flow"] .product-images-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+body[data-current-app="flow"] .app-text-whisk {
+    display: none !important;
+}
+body[data-current-app="flow"] .app-text-flow {
+    display: inline !important;
+}

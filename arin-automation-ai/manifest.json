@@ -25,6 +25,7 @@
         "*://labs.google/*"
       ],
       "js": [
+        "content-flow.js",
         "content.js"
       ],
       "run_at": "document_idle"
@@ -43,7 +44,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["Injected.js"],
+      "resources": ["Injected.js", "InjectedFlow.js"],
       "matches": ["*://labs.google/*"]
     }
   ]

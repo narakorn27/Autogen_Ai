@@ -65,6 +65,7 @@ function createAppModeManager(cfg) {
 
     const setApp = (app) => {
         currentApp = app === 'flow' ? 'flow' : 'whisk';
+        document.body.setAttribute('data-current-app', currentApp);
         applyTabStyle(currentApp === 'flow' ? 'tabFlow' : 'tabWhisk');
         applyVisibility(currentApp);
         LOG.info(`เปลี่ยนโหมด → ${currentApp === 'flow' ? 'Google Flow' : 'Google Whisk'}`);
@@ -74,7 +75,88 @@ function createAppModeManager(cfg) {
     if (tabWhisk) tabWhisk.addEventListener('click', () => setApp('whisk'));
     if (tabFlow) tabFlow.addEventListener('click', () => setApp('flow'));
     setApp(currentApp);
-    return { setApp, getCurrentApp: () => currentApp };
+    return { setApp, getCurrentApp: () => currentApp, applyVisibility };
+}
+
+function createFlowModeManager(cfg) {
+    let outputType = cfg.defaultOutputType || 'video';
+    let videoMode = cfg.defaultVideoMode || 'text';
+
+    const btnImage = document.getElementById('btnFlowTypeImage');
+    const btnVideo = document.getElementById('btnFlowTypeVideo');
+    const btnText = document.getElementById('btnVideoModeText');
+    const btnFrame = document.getElementById('btnVideoModeFrame');
+
+    const imageModelContainer = document.getElementById('flowImageModelContainer');
+    const videoModelContainer = document.getElementById('flowVideoModelContainer');
+    const videoModeContainer = document.getElementById('flowVideoModeContainer');
+    
+    const toggleAutoExtendWrap = document.getElementById('toggleAutoExtendWrap');
+    
+    // Style dropdowns
+    const imageStyleContainer = document.getElementById('imageStyle')?.parentElement;
+    const videoStyleContainer = document.getElementById('videoStyle')?.parentElement;
+    const cameraMotionContainer = document.getElementById('videoCameraMotion')?.parentElement;
+    const randomVideoStyleWrap = document.getElementById('toggleRandomVideoStyleWrap');
+    const randomImageStyleWrap = document.getElementById('toggleRandomImageStyleWrap');
+    const cameraAngleContainer = document.getElementById('cameraAngle')?.parentElement;
+    const randomCameraToggleWrap = document.getElementById('toggleRandomCameraWrap');
+    const speechLineContainer = document.getElementById('speechLine')?.parentElement;
+
+    const applyStyles = () => {
+        const activeStyle = 'background-color:#1a1a24;color:#60a5fa;border:1px solid #60a5fa;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
+        const activePurple = 'background-color:#1a1a24;color:#c084fc;border:1px solid #c084fc;box-shadow:0 1px 3px rgba(0,0,0,0.3);';
+        const inactiveStyle = 'color:#6b7280;border:1px solid transparent;background-color:transparent;box-shadow:none;';
+        
+        if (btnImage) btnImage.style.cssText = outputType === 'image' ? activeStyle : inactiveStyle;
+        if (btnVideo) btnVideo.style.cssText = outputType === 'video' ? activeStyle : inactiveStyle;
+        if (btnText) btnText.style.cssText = videoMode === 'text' ? activePurple : inactiveStyle;
+        if (btnFrame) btnFrame.style.cssText = videoMode === 'frame' ? activePurple : inactiveStyle;
+    };
+
+    const applyVisibility = (app) => {
+        if (app !== 'flow') return;
+        const isImage = outputType === 'image';
+        
+        if (imageModelContainer) imageModelContainer.classList.toggle('hidden', !isImage);
+        if (videoModelContainer) videoModelContainer.classList.toggle('hidden', isImage);
+        if (videoModeContainer) videoModeContainer.classList.toggle('hidden', isImage);
+        
+        if (imageStyleContainer) imageStyleContainer.classList.toggle('hidden', !isImage);
+        if (randomImageStyleWrap) randomImageStyleWrap.classList.toggle('hidden', !isImage);
+        
+        if (videoStyleContainer) videoStyleContainer.classList.toggle('hidden', isImage);
+        if (cameraMotionContainer) cameraMotionContainer.classList.toggle('hidden', isImage);
+        if (randomVideoStyleWrap) randomVideoStyleWrap.classList.toggle('hidden', isImage);
+        
+        if (toggleAutoExtendWrap) toggleAutoExtendWrap.classList.toggle('hidden', isImage);
+        if (speechLineContainer) speechLineContainer.classList.toggle('hidden', isImage);
+        
+        if (cameraAngleContainer) cameraAngleContainer.classList.toggle('hidden', !isImage);
+        if (randomCameraToggleWrap) randomCameraToggleWrap.classList.toggle('hidden', !isImage);
+    };
+
+    const setType = (type, app) => {
+        outputType = type;
+        applyStyles();
+        applyVisibility(app);
+        if (typeof cfg.onChange === 'function') cfg.onChange(outputType, videoMode);
+    };
+
+    const setVideoMode = (mode, app) => {
+        videoMode = mode;
+        applyStyles();
+        applyVisibility(app);
+        if (typeof cfg.onChange === 'function') cfg.onChange(outputType, videoMode);
+    };
+
+    if (btnImage) btnImage.addEventListener('click', () => setType('image', 'flow'));
+    if (btnVideo) btnVideo.addEventListener('click', () => setType('video', 'flow'));
+    if (btnText) btnText.addEventListener('click', () => setVideoMode('text', 'flow'));
+    if (btnFrame) btnFrame.addEventListener('click', () => setVideoMode('frame', 'flow'));
+
+    applyStyles();
+    return { setType, setVideoMode, applyVisibility, getOutputType: () => outputType, getVideoMode: () => videoMode };
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -102,12 +184,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     const MAX_SETS = 15;
     let productSetsData = [];
     let currentApp = 'whisk';
+    let currentFlowOutputType = 'video';
+    let currentFlowVideoMode = 'text';
     let isPaused = false;
     let saveState = async () => {};
 
+    const flowMode = createFlowModeManager({
+        defaultOutputType: currentFlowOutputType,
+        defaultVideoMode: currentFlowVideoMode,
+        onChange: (type, mode) => {
+            currentFlowOutputType = type;
+            currentFlowVideoMode = mode;
+            saveState();
+        }
+    });
+
     const appMode = createAppModeManager({
         defaultApp: 'whisk',
-        onChange: (app) => { currentApp = app; saveState(); }
+        onChange: (app) => { 
+            currentApp = app; 
+            flowMode.applyVisibility(app);
+            saveState(); 
+        }
     });
 
     document.querySelectorAll('.section-header').forEach((header) => {
@@ -373,15 +471,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <span class="set-number text-xs font-bold" style="color:#d4af37;">ชุดที่ ${setCount}</span>
                 <button class="btn-remove-set text-gray-500 hover:text-red-400 p-1 rounded-full transition"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
             </div>
-            <div class="grid grid-cols-3 gap-2 mb-3">
+            <div class="grid grid-cols-3 gap-2 mb-3 product-images-grid">
                 <div class="image-box-product dashed-box rounded-lg flex flex-col items-center justify-center p-2 h-[80px] cursor-pointer relative overflow-hidden">
-                    <div class="image-placeholder-product flex flex-col items-center pointer-events-none"><i data-lucide="image-plus" class="w-4 h-4 mb-1" style="color:#d4af37;"></i><span class="text-[9px] text-gray-500 text-center">Subject</span></div>
+                    <div class="image-placeholder-product flex flex-col items-center pointer-events-none"><i data-lucide="image-plus" class="w-4 h-4 mb-1" style="color:#d4af37;"></i><span class="text-[9px] text-gray-500 text-center app-text-whisk">Subject</span><span class="text-[9px] text-gray-500 text-center app-text-flow" style="display:none;">รูปสินค้า</span></div>
                     <img class="image-preview-product absolute inset-0 w-full h-full object-cover hidden" alt="product">
                     <div class="image-remove-product image-remove hidden absolute top-1 right-1 z-10 cursor-pointer"><i data-lucide="x-circle" class="w-4 h-4 text-red-500 bg-black/50 rounded-full"></i></div>
                 </div>
                 <input type="file" class="image-input-product hidden" accept="image/*">
                 <div class="image-box-model dashed-box rounded-lg flex flex-col items-center justify-center p-2 h-[80px] cursor-pointer relative overflow-hidden">
-                    <div class="image-placeholder-model flex flex-col items-center pointer-events-none"><i data-lucide="user" class="w-4 h-4 mb-1" style="color:#d4af37;"></i><span class="text-[9px] text-gray-500 text-center">Scene</span></div>
+                    <div class="image-placeholder-model flex flex-col items-center pointer-events-none"><i data-lucide="user" class="w-4 h-4 mb-1" style="color:#d4af37;"></i><span class="text-[9px] text-gray-500 text-center app-text-whisk">Scene</span><span class="text-[9px] text-gray-500 text-center app-text-flow" style="display:none;">นางแบบ</span></div>
                     <img class="image-preview-model absolute inset-0 w-full h-full object-cover hidden" alt="model">
                     <div class="image-remove-model image-remove hidden absolute top-1 right-1 z-10 cursor-pointer"><i data-lucide="x-circle" class="w-4 h-4 text-red-500 bg-black/50 rounded-full"></i></div>
                 </div>
@@ -472,6 +570,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         cameraAngle: document.getElementById('cameraAngle')?.value || 'close-up',
         randomCameraToggle: document.getElementById('randomCameraToggle')?.checked || false,
         videoModel: document.getElementById('videoModel')?.value || 'veo31_fast',
+        flowImageModel: document.getElementById('flowImageModel')?.value || 'imagen_4',
+        flowOutputType: currentFlowOutputType,
+        flowVideoMode: currentFlowVideoMode,
         aiProvider: document.getElementById('aiProvider')?.value || 'groq',
         aiProviderFlow: document.getElementById('aiProviderFlow')?.value || 'groq_thai',
         apiKey: document.getElementById('apiKey')?.value || '', // backward compat
@@ -695,8 +796,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const cb = document.getElementById(id);
                 if (cb) cb.dispatchEvent(new Event('change'));
             });
+            setVal('flowImageModel', g.flowImageModel);
+            if (g.flowOutputType) {
+                currentFlowOutputType = g.flowOutputType;
+                flowMode.setType(g.flowOutputType, 'flow'); // Won't apply visibility yet if app is not flow
+            }
+            if (g.flowVideoMode) {
+                currentFlowVideoMode = g.flowVideoMode;
+                flowMode.setVideoMode(g.flowVideoMode, 'flow');
+            }
             appMode.setApp(g.targetApp || 'whisk');
             currentApp = g.targetApp || 'whisk';
+            flowMode.applyVisibility(currentApp);
         }
         if (saved?.sets?.length) {
             productSetsData = saved.sets;

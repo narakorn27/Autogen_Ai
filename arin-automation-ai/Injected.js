@@ -4,15 +4,56 @@
     if (window.__arinWhiskHookInjected) return;
     window.__arinWhiskHookInjected = true;
 
-    // ── Fetch Hook: ปิดชั่วคราวสำหรับ Whisk เพราะทำให้ดึง history มาตอนโหลด (ใช้ DOM scan ใน content.js ปลอดภัยกว่า) ──
+    // ── Fetch Hook ──
     const origFetch = window.fetch;
     window.fetch = async function(...args) {
-        return origFetch.apply(this, args);
+        const url = typeof args[0] === 'string' ? args[0] : (args[0]?.url || '');
+        const res = await origFetch.apply(this, args);
+
+        if (url.includes('flowMedia') || url.includes('getMediaUrl')) {
+            try {
+                const json = await res.clone().json();
+                const ts = Date.now();
+                const mediaList = json.media || [];
+
+                mediaList.forEach(item => {
+                    const imgUrl = item?.image?.generatedImage?.fifeUrl;
+                    const vidUrl = item?.video?.generatedVideo?.fifeUrl;
+                    if (imgUrl) window.postMessage({ type: 'ARIN_MEDIA_URL', url: imgUrl, mediaType: 'image', ts }, '*');
+                    if (vidUrl) window.postMessage({ type: 'ARIN_MEDIA_URL', url: vidUrl, mediaType: 'video', ts }, '*');
+                });
+
+                if (mediaList.length === 0) {
+                    const matches = JSON.stringify(json).match(/"fifeUrl":"(https:[^"]+)"/g);
+                    if (matches) {
+                        matches.forEach(m => {
+                            const u = m.replace(/"fifeUrl":"/, '').replace(/"$/, '');
+                            window.postMessage({ type: 'ARIN_MEDIA_URL', url: u, mediaType: 'unknown', ts }, '*');
+                        });
+                    }
+                }
+            } catch(e) {}
+        }
+        return res;
     };
 
-    // ── XHR Hook: ปิดชั่วคราวเช่นกัน ──
+    // ── XHR Hook ──
     const origOpen = XMLHttpRequest.prototype.open;
     XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+        if (typeof url === 'string' && (url.includes('flowMedia') || url.includes('getMediaUrl'))) {
+            this.addEventListener('load', function() {
+                try {
+                    const json = JSON.parse(this.responseText);
+                    const ts = Date.now();
+                    (json.media || []).forEach(item => {
+                        const imgUrl = item?.image?.generatedImage?.fifeUrl;
+                        const vidUrl = item?.video?.generatedVideo?.fifeUrl;
+                        if (imgUrl) window.postMessage({ type: 'ARIN_MEDIA_URL', url: imgUrl, mediaType: 'image', ts }, '*');
+                        if (vidUrl) window.postMessage({ type: 'ARIN_MEDIA_URL', url: vidUrl, mediaType: 'video', ts }, '*');
+                    });
+                } catch(e) {}
+            });
+        }
         return origOpen.apply(this, [method, url, ...rest]);
     };
 
@@ -20,56 +61,21 @@
     window.addEventListener('message', async (e) => {
         if (e.data?.type !== 'ARIN_UPLOAD_REQUEST') return;
 
-        const target = e.data.target || 'subject'; // 'subject' | 'scene' | 'style'
+        const target = e.data.target || 'subject';
+        const idx = { 'subject': 0, 'scene': 1, 'style': 2 };
         
-        // หา upload zone ที่ตรงกับ target
-        const findUploadZone = () => {
-            // หา container ที่มีข้อความตรงกับ target
-            const labels = {
-                'subject': ['Subject', 'subject', 'หัวข้อ', 'เรื่อง', 'ตัวแบบ', 'นายแบบ'],
-                'scene': ['Scene', 'scene', 'ฉาก', 'สถานที่', 'สถานที่'],
-                'style': ['Style', 'style', 'สไตล์', 'รูปแบบ']
-            };
-            
-            const targetLabels = labels[target] || labels['subject'];
-            
-            // หา heading/label ที่ตรงกัน
-            const allEls = document.querySelectorAll('h2, h3, span, label, p, div');
-            for (const el of allEls) {
-                const text = (el.innerText || '').trim().toLowerCase();
-                if (targetLabels.some(l => text.includes(l.toLowerCase()))) {
-                    // หา input[type="file"] ที่ใกล้ที่สุด
-                    let parent = el.parentElement;
-                    for (let i = 0; i < 8 && parent; i++) {
-                        const fileInput = parent.querySelector('input[type="file"]');
-                        if (fileInput) return fileInput;
-                        // หา dropzone/upload area
-                        const dropArea = parent.querySelector('[class*="upload"], [class*="drop"], [role="button"]');
-                        if (dropArea) {
-                            const fi = dropArea.querySelector('input[type="file"]');
-                            if (fi) return fi;
-                        }
-                        parent = parent.parentElement;
-                    }
-                }
-            }
-            
-            // Fallback: หา input[type="file"] ตัวที่ N
-            const allInputs = document.querySelectorAll('input[type="file"]');
-            const idx = { 'subject': 0, 'scene': 1, 'style': 2 };
-            return allInputs[idx[target] || 0] || null;
-        };
+        // ใช้ index โดยตรง — หลังจากกด "เพิ่มรูปภาพ" แล้ว input[type=file] มี 3 ตัวเสมอ
+        const allInputs = document.querySelectorAll('input[type="file"]');
+        const fileInput = allInputs[idx[target] ?? 0];
 
-        const fileInput = findUploadZone();
         if (!fileInput) {
-            window.postMessage({ type: 'ARIN_UPLOAD_RESULT', success: false, error: `no input for ${target}` }, '*');
+            window.postMessage({ type: 'ARIN_UPLOAD_RESULT', success: false, target, error: `no input[${idx[target]}]` }, '*');
             return;
         }
 
         try {
             const images = e.data.images;
             const dt = new DataTransfer();
-
             for (const img of images) {
                 const mime = img.mime || 'image/jpeg';
                 const ext = mime.split('/')[1] || 'jpg';
@@ -81,32 +87,23 @@
                 dt.items.add(file);
             }
 
+            // inject files
             Object.defineProperty(fileInput, 'files', {
                 configurable: true,
                 get() { return dt.files; }
             });
-
             fileInput.dispatchEvent(new Event('change', { bubbles: true }));
             fileInput.dispatchEvent(new Event('input', { bubbles: true }));
 
-            console.log(`[ArinWhisk] ${target} file injected OK, count:`, dt.files.length);
+            console.log(`[ArinWhisk] ${target} injected OK via index ${idx[target]}, count:`, dt.files.length);
+            window.postMessage({ type: 'ARIN_UPLOAD_RESULT', success: true, target, count: dt.files.length }, '*');
 
-            window.postMessage({ 
-                type: 'ARIN_UPLOAD_RESULT', 
-                success: true, 
-                target,
-                count: dt.files.length 
-            }, '*');
         } catch (err) {
             console.error(`[ArinWhisk] Upload error (${target}):`, err.message);
-            window.postMessage({ 
-                type: 'ARIN_UPLOAD_RESULT', 
-                success: false, 
-                target,
-                error: err.message 
-            }, '*');
+            window.postMessage({ type: 'ARIN_UPLOAD_RESULT', success: false, target, error: err.message }, '*');
         }
     });
+
 
     console.log('[ArinWhisk] Injected.js loaded — fetch + XHR hook active ✅');
 })();
