@@ -214,25 +214,17 @@ const waitForThumbnailAdded = async (countBefore, timeoutMs = 20000) => {
 
 // ── แทนที่ handleFlowImageUpload เดิม ให้รองรับอัปโหลดพร้อมกัน ──
 const handleFlowMultipleImagesUpload = async (imagesObjArray) => {
-    sendLog(`เริ่มต้นอัปโหลดภาพพร้อมกัน ${imagesObjArray.length} ภาพ...`, 'info');
+    sendLog(`เริ่มต้นอัปโหลดภาพ ${imagesObjArray.length} ภาพ...`, 'info');
     if (!imagesObjArray || imagesObjArray.length === 0) return [];
-
-    const capturedServerIds = [];
-    const serverIdListener = (e) => {
-        if (e.data?.type === 'ARIN_FLOW_UPLOAD_SERVERID') {
-            capturedServerIds.push(e.data.serverId);
-        }
-    };
-    window.addEventListener('message', serverIdListener);
 
     try {
         // 1. คลิกปุ่ม "เพิ่มสื่อ"
         const addBtn = Array.from(document.querySelectorAll('button')).find(b => {
             const txt = b.innerText || '';
             const rect = b.getBoundingClientRect();
-            return (txt.includes('สร้าง') && txt.includes('add_2')) || 
+            return (txt.includes('สร้าง') && txt.includes('add_2')) ||
                    (txt.includes('เพิ่มสื่อ') && rect.top > window.innerHeight * 0.5) ||
-                   (txt.includes('Attach image'));
+                   txt.includes('Attach image');
         });
         if (addBtn) {
             sendLog('คลิกปุ่ม "เพิ่มสื่อ"...', 'info');
@@ -244,13 +236,14 @@ const handleFlowMultipleImagesUpload = async (imagesObjArray) => {
         const startWait = Date.now();
         let input = null;
         while (Date.now() - startWait < 5000) {
-            input = document.querySelector('input.sc-a40aa0db-0') || document.querySelector('input[type="file"][accept="image/*"]');
+            input = document.querySelector('input.sc-a40aa0db-0') 
+                 || document.querySelector('input[type="file"][accept="image/*"]');
             if (input) break;
             await sleep(300);
         }
         if (!input) { sendLog('input ไม่โผล่', 'error'); return []; }
 
-        // 3. เตรียมไฟล์ทั้งหมดส่งผ่าน postMessage
+        // 3. เตรียมไฟล์
         const filesToInject = [];
         for (const img of imagesObjArray) {
             const mimeMatch = img.data.match(/data:([^;]+);/);
@@ -259,10 +252,29 @@ const handleFlowMultipleImagesUpload = async (imagesObjArray) => {
             filesToInject.push({ base64, mime, filename: img.name });
         }
 
-        const countBefore = getThumbnailCount();
-        sendLog(`Thumbnail ก่อน upload: ${countBefore} (กำลังอัป ${filesToInject.length} ภาพ)`, 'info');
+        // 4. นับ mediaId ใน input bar ก่อน upload
+        const countInputImages = async () => {
+            return new Promise((resolve) => {
+                const h = (e) => {
+                    if (e.data?.type === 'ARIN_FLOW_INPUT_IMAGE_COUNT') {
+                        window.removeEventListener('message', h);
+                        sendLog(`countInputImages: ${e.data.count} (strategy: ${e.data.strategy || '?'})`, 'info');
+                        resolve(e.data.count);
+                    }
+                };
+                window.addEventListener('message', h);
+                window.postMessage({ type: 'ARIN_FLOW_COUNT_INPUT_IMAGES' }, '*');
+                setTimeout(() => { window.removeEventListener('message', h); resolve(0); }, 2000);
+            });
+        };
 
-        // 4. Upload ผ่าน Injected.js พร้อมกัน
+        window.postMessage({ type: 'ARIN_FLOW_RESET_SERVERIDS' }, '*');
+        await sleep(100);
+
+        const countBefore = await countInputImages();
+        sendLog(`รูปใน input bar ก่อน upload: ${countBefore}`, 'info');
+
+        // 5. Upload ผ่าน InjectedFlow.js
         const injected = await new Promise((resolve) => {
             const handler = (e) => {
                 if (e.data?.type === 'ARIN_FLOW_UPLOAD_RESULT') {
@@ -271,10 +283,7 @@ const handleFlowMultipleImagesUpload = async (imagesObjArray) => {
                 }
             };
             window.addEventListener('message', handler);
-            window.postMessage({
-                type: 'ARIN_FLOW_UPLOAD_REQUEST',
-                files: filesToInject
-            }, '*');
+            window.postMessage({ type: 'ARIN_FLOW_UPLOAD_REQUEST', files: filesToInject }, '*');
             setTimeout(() => {
                 window.removeEventListener('message', handler);
                 resolve({ success: false, error: 'timeout' });
@@ -285,99 +294,29 @@ const handleFlowMultipleImagesUpload = async (imagesObjArray) => {
             sendLog(`inject upload ล้มเหลว: ${injected.error}`, 'error');
             return [];
         }
-        sendLog('inject สำเร็จ ✅ รอข้อมูลจาก server...', 'info');
+        sendLog('inject สำเร็จ ✅ รอรูปเข้า input bar...', 'info');
 
-        // 5. รอ thumbnail อัปเดตเต็มจำนวน (thumbnail เพิ่มขึ้นเท่ากับจำนวนภาพ)
-        await waitForThumbnailAdded(countBefore + filesToInject.length - 1, 30000);
-
-        // 6. รอ serverId 
-        const startParams = Date.now();
-        while (capturedServerIds.length < filesToInject.length && (Date.now() - startParams < 15000)) {
-            await sleep(500);
+        // ── step 6: รอรูปเข้า zSufC — Flow auto-attach เอง ไม่ต้องคลิก card ──
+        const startWaitImg = Date.now();
+        let finalCount = 0;
+        while (Date.now() - startWaitImg < 15000) {
+            finalCount = await countInputImages();
+            sendLog(`รูปใน input bar: ${finalCount}/1`, 'info');
+            if (finalCount >= 1) break;
+            await sleep(800);
         }
-        
-        sendLog(`ได้ serverId มารวม ${capturedServerIds.length} ภาพ`, 'info');
 
-        // 7. Select Card ทีละใบจาก serverIds ที่จับได้
-        const successIds = [];
-        const idsToSelect = capturedServerIds.length > 0 ? capturedServerIds : ['LATEST'];
-        
-        let currentInputCount = 0;
-        try {
-            currentInputCount = await new Promise((resolve) => {
-                const h = (e) => {
-                    if (e.data?.type === 'ARIN_FLOW_INPUT_IMAGE_COUNT') {
-                        window.removeEventListener('message', h);
-                        resolve(e.data.count);
-                    }
-                };
-                window.addEventListener('message', h);
-                window.postMessage({ type: 'ARIN_FLOW_COUNT_INPUT_IMAGES' }, '*');
-                setTimeout(() => { window.removeEventListener('message', h); resolve(0); }, 1000);
-            });
-        } catch (e) {}
-
-        for (const sid of idsToSelect) {
-            sendLog(`กำลัง select card: ${sid.slice(0,8)}...`, 'info');
-            
-            let selectOk = false;
-            for (let attempt = 1; attempt <= 2; attempt++) {
-                selectOk = await new Promise((resolve) => {
-                    const h = (e) => {
-                        if (e.data?.type === 'ARIN_FLOW_SELECT_RESULT') {
-                            window.removeEventListener('message', h);
-                            resolve(e.data.success);
-                        }
-                    };
-                    window.addEventListener('message', h);
-                    window.postMessage({
-                        type: 'ARIN_FLOW_SELECT_MEDIA',
-                        serverId: sid
-                    }, '*');
-                    setTimeout(() => { window.removeEventListener('message', h); resolve(false); }, 10000);
-                });
-
-                if (selectOk) {
-                    let uploaded = false;
-                    for (let w = 0; w < 10; w++) {
-                        await sleep(1000);
-                        let latestCount = await new Promise((resolve) => {
-                            const h = (e) => {
-                                if (e.data?.type === 'ARIN_FLOW_INPUT_IMAGE_COUNT') {
-                                    window.removeEventListener('message', h);
-                                    resolve(e.data.count);
-                                }
-                            };
-                            window.addEventListener('message', h);
-                            window.postMessage({ type: 'ARIN_FLOW_COUNT_INPUT_IMAGES' }, '*');
-                            setTimeout(() => { window.removeEventListener('message', h); resolve(0); }, 1000);
-                        });
-                        if (latestCount > currentInputCount) {
-                            uploaded = true;
-                            currentInputCount = latestCount;
-                            break;
-                        }
-                    }
-                    if (uploaded) {
-                        sendLog(`ตรวจ input bar: มีรูปเข้าแล้ว ✅`, 'success');
-                        successIds.push(sid);
-                        break;
-                    } else {
-                        sendLog(`ตรวจ input bar: ไม่พบรูป (อาจติด UI) ⚠️ ลองอีกครั้ง...`, 'warn');
-                        selectOk = false;
-                    }
-                } else {
-                    sendLog(`select card ล้มเหลว ❌ ลองอีกครั้ง...`, 'warn');
-                }
-                if (!selectOk && attempt === 1) await humanSleep(1000, 2000);
-            }
-            if (selectOk) await sleep(500);
+        if (finalCount >= 1) {
+            sendLog(`✅ Upload สำเร็จ: รูปเข้า input bar แล้ว`, 'success');
+            return [`success_0`];
+        } else {
+            sendLog(`❌ รูปไม่เข้า input bar (timeout)`, 'error');
+            return [];
         }
-        
-        return successIds;
 
-    } finally {
-        window.removeEventListener('message', serverIdListener);
+    } catch(err) {
+        sendLog(`handleFlowMultipleImagesUpload error: ${err.message}`, 'error');
+        return [];
     }
 };
 // ─── Apply Settings (image/video mode, ratio, model, count) ───
@@ -555,21 +494,27 @@ const processFlowGeneration = async (data) => {
         throw new Error('[OFF_SITE] คุณไม่ได้อยู่ในหน้า Google Flow');
     }
 
-    // ─── Step 1: อัปโหลดภาพ (ถ้ามี) ───
+    // ─── Step 1: อัปโหลดภาพ (ถ้ามี) — Flow รองรับแค่ 1 รูป ───
     const imagesToUpload = [];
     if (data.subjectImage) imagesToUpload.push({ data: data.subjectImage, name: data.sourceFilename || data.imageName || 'subject.jpg', type: 'Subject' });
     if (data.sceneImage) imagesToUpload.push({ data: data.sceneImage, name: 'scene.jpg', type: 'Scene' });
     if (data.image && imagesToUpload.length === 0) imagesToUpload.push({ data: data.image, name: data.imageName || 'image.jpg', type: 'Image' });
 
-    if (imagesToUpload.length > 0 || mode === 'frame_to_video') {
-        if (imagesToUpload.length === 0) throw new Error('โหมด Frame to Video ต้องการรูปภาพประกอบ');
-        
+    // Flow รองรับแค่ 1 รูป — ใช้รูปแรกเท่านั้น
+    const singleImageUpload = imagesToUpload.slice(0, 1);
+
+    if (singleImageUpload.length > 0 || mode === 'frame_to_video') {
+        if (singleImageUpload.length === 0) throw new Error('โหมด Frame to Video ต้องการรูปภาพประกอบ');
+        if (imagesToUpload.length > 1) {
+            sendLog(`⚠️ Flow รองรับแค่ 1 รูป — ใช้เฉพาะ "${singleImageUpload[0].name}"`, 'warn');
+        }
+
         sendProgress(promptId, 5, 'uploading');
-        sendLog(`อัปโหลดภาพพร้อมกัน ${imagesToUpload.length} ภาพ...`, 'step');
-        
-        const successIds = await handleFlowMultipleImagesUpload(imagesToUpload);
-        if (successIds.length < imagesToUpload.length) {
-            sendLog(`อัปโหลด/เลือกภาพไม่ครบ (ได้ ${successIds.length}/${imagesToUpload.length})`, 'warn');
+        sendLog(`อัปโหลดภาพ 1 รูป (${singleImageUpload[0].name})...`, 'step');
+
+        const successIds = await handleFlowMultipleImagesUpload(singleImageUpload);
+        if (successIds.length === 0) {
+            sendLog(`อัปโหลดล้มเหลว`, 'warn');
         }
         await humanSleep(800, 1200);
     }
