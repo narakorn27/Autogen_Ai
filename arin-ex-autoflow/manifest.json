@@ -1,0 +1,27 @@
+{
+    "manifest_version": 3,
+    "name": "Arin Flow Extension",
+    "version": "1.0.0",
+    "description": "DOM automation for Flow image upload + prompt + generate",
+    "permissions": [
+        "tabs",
+        "scripting",
+        "activeTab",
+        "storage",
+        "sidePanel"
+    ],
+    "host_permissions": [
+        "https://labs.google/fx/*",
+        "https://flow.google/*",
+        "https://*.google.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
+    "action": {
+        "default_title": "Arin Flow Extension"
+    }
+}

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arin Automation AI</title>
+    <link rel="stylesheet" href="tailwind.min.css">
+    <script src="lucide.min.js"></script>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body class="p-0 w-[450px] h-screen overflow-hidden flex flex-col text-[13px]" style="background-color:#0e0e14;color:#e2e8f0;">
+
+    <!-- ═══ Header ═══ -->
+    <div style="background-color:#16161f;" class="px-4 pt-4 pb-3 border-b border-[#2a2a3a] sticky top-0 z-20 shadow-lg flex flex-col gap-3">
+        <!-- Top Row -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="bot" class="w-5 h-5" style="color:#d4af37;"></i>
+                <h1 class="font-bold text-base tracking-wide text-white flex items-center gap-2">
+                    ARIN AUTO FLOW <span class="text-[11px] font-normal" style="color:#d4af37;">v.7.1</span>
+                </h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <span id="statusBadge" class="text-[10px] px-2 py-1 rounded-full font-medium" style="background:rgba(212,175,55,0.12);color:#d4af37;border:1px solid rgba(212,175,55,0.25);">
+                    พร้อมใช้งาน
+                </span>
+                <button id="btnOpenApiSettings" class="p-1.5 rounded-full hover:bg-gray-800 transition" title="ตั้งค่า API Key">
+                    <i data-lucide="settings" class="w-4 h-4 text-gray-400 hover:text-white"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- System Select Tabs -->
+        <div class="flex p-1 rounded-lg gap-1 border" style="background-color:#0e0e14;border-color:#2a2a3a;">
+            <button id="tabWhisk" class="flex-1 py-1.5 text-xs font-semibold rounded-md shadow-md flex justify-center items-center gap-1.5 cursor-pointer" style="background-color:#1a1a20;color:#d4af37;border:1px solid #d4af37;">
+                Google Whisk
+            </button>
+            <button id="tabFlow" class="flex-1 py-1.5 text-xs font-medium rounded-md flex justify-center items-center gap-1.5 transition cursor-pointer" style="color:#6b7280;border:1px solid transparent;">
+                Google Flow
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══ Main Scrollable Content ═══ -->
+    <div id="mainScrollArea" class="flex-1 overflow-y-auto px-3 py-3 space-y-3 pb-24 relative">
+
+        <!-- ═══ 1. ตั้งค่าพื้นฐาน ═══ -->
+        <div class="card-bg">
+            <div class="section-header p-3 flex justify-between items-center" data-target="basicSettings">
+                <h2 class="font-semibold text-white flex items-center gap-2">
+                    <i data-lucide="settings-2" class="w-4 h-4 icon-gold"></i> ตั้งค่าพื้นฐาน
+                </h2>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform" id="icon-basicSettings"></i>
+            </div>
+            <div id="basicSettings" class="section-content px-3 pb-3 border-t border-[#2a2a3a]">
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <!-- Flow: Output Type -->
+                    <div class="col-span-2 hidden mb-1" data-app="flow" id="flowOutputTypeContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="layers" class="w-3 h-3 text-blue-400"></i> ประเภทผลลัพธ์ (เริ่มตั้งค่าจากตรงนี้)</label>
+                        <div class="flex p-1 rounded-lg gap-1 border" style="background-color:#12121a;border-color:#2a2a3a;">
+                            <button type="button" id="btnFlowTypeImage" class="flex-1 py-1.5 text-xs font-medium rounded-md flex justify-center items-center gap-1.5 transition cursor-pointer" style="color:#6b7280;border:1px solid transparent;">
+                                🖼️ รูปภาพ
+                            </button>
+                            <button type="button" id="btnFlowTypeVideo" class="flex-1 py-1.5 text-xs font-semibold rounded-md shadow flex justify-center items-center gap-1.5 cursor-pointer" style="background-color:#1a1a24;color:#60a5fa;border:1px solid #60a5fa;">
+                                🎬 วิดีโอ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Flow: Video Mode -->
+                    <div class="col-span-2 hidden mb-1" data-app="flow" id="flowVideoModeContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="film" class="w-3 h-3 text-purple-400"></i> สร้างวิดีโอจากอะไร?</label>
+                        <div class="flex p-1 rounded-lg gap-1 border" style="background-color:#12121a;border-color:#2a2a3a;">
+                            <button type="button" id="btnVideoModeText" class="flex-1 py-1.5 text-xs font-semibold rounded-md shadow flex justify-center items-center gap-1.5 cursor-pointer" style="background-color:#1a1a24;color:#c084fc;border:1px solid #c084fc;">
+                                📝 ข้อความ
+                            </button>
+                            <button type="button" id="btnVideoModeFrame" class="flex-1 py-1.5 text-xs font-medium rounded-md flex justify-center items-center gap-1.5 transition cursor-pointer" style="color:#6b7280;border:1px solid transparent;">
+                                🖼️ รูปและข้อความ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- สัดส่วน -->
+                    <div data-app="both">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="crop" class="w-3 h-3"></i> สัดส่วน</label>
+                        <select id="aspectRatio" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="1:1" style="background-color: #1a1a24;">1:1 (จัตุรัส) ⭐</option>
+                            <option value="9:16" style="background-color: #1a1a24;">9:16 (แนวตั้ง)</option>
+                            <option value="16:9" style="background-color: #1a1a24;">16:9 (แนวนอน)</option>
+                        </select>
+                    </div>
+                    <!-- จำนวนผลลัพธ์ -->
+                    <div data-app="flow" class="hidden" id="flowOutputCountContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="copy" class="w-3 h-3"></i> จำนวนผลลัพธ์ <span class="text-gray-500 text-[10px]">(แนะนำ 2-3)</span></label>
+                        <select id="clipCount" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="1" style="background-color: #1a1a24;">1 รายการ</option>
+                            <option value="2" style="background-color: #1a1a24;" selected>2 รายการ ⭐</option>
+                            <option value="3" style="background-color: #1a1a24;">3 รายการ</option>
+                            <option value="4" style="background-color: #1a1a24;">4 รายการ</option>
+                        </select>
+                    </div>
+                    <!-- นายแบบ/นางแบบ -->
+                    <div data-app="flow" class="hidden">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="user" class="w-3 h-3" style="color:#d4af37;"></i> นายแบบ/นางแบบ</label>
+                        <select id="modelSource" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="from_image" style="background-color: #1a1a24;">ใช้จากรูป</option>
+                            <option value="ai_generate" style="background-color: #1a1a24;">AI สร้างใหม่</option>
+                        </select>
+                    </div>
+                    <!-- เสียงพูด -->
+                    <div data-app="flow" class="hidden">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="mic" class="w-3 h-3" style="color:#d4af37;"></i> เสียงพูด</label>
+                        <select id="voiceGender" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="female" style="background-color: #1a1a24;">ผู้หญิง</option>
+                            <option value="male" style="background-color: #1a1a24;">ผู้ชาย</option>
+                        </select>
+                    </div>
+                    <!-- มุมกล้อง -->
+                    <div data-app="both">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="camera" class="w-3 h-3"></i> มุมกล้องภาพ</label>
+                        <select id="cameraAngle" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="close-up" style="background-color: #1a1a24;">ระยะใกล้ (Close-up)</option>
+                            <option value="full-body" style="background-color: #1a1a24;">เต็มตัว (Full body)</option>
+                            <option value="medium" style="background-color: #1a1a24;">ครึ่งตัว (Medium)</option>
+                        </select>
+                    </div>
+                    <!-- สุ่มมุมกล้อง toggle -->
+                    <div class="col-span-2" data-app="both">
+                        <label class="toggle-option" id="toggleRandomCameraWrap">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="randomCameraToggle">
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-200 flex items-center gap-1"><i data-lucide="shuffle" class="w-3 h-3 icon-gold"></i> สุ่มมุมกล้องแต่ละรอบ</span>
+                            </div>
+                        </label>
+                    </div>
+                    <!-- โมเดลรูปภาพ (Flow Only) -->
+                    <div class="col-span-2 hidden" data-app="flow" id="flowImageModelContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="image" class="w-3 h-3 text-blue-400"></i> โมเดลรูปภาพ</label>
+                        <select id="flowImageModel" class="w-full rounded-md p-2 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="imagen_4" style="background-color: #1a1a24;">Imagen 4</option>
+                            <option value="banana_nano_pro" style="background-color: #1a1a24;">Nano Banana Pro</option>
+                            <option value="banana_nano_2" style="background-color: #1a1a24;">Nano Banana 2</option>
+                        </select>
+                    </div>
+                    
+                    <!-- โมเดลวิดีโอ -->
+                    <div class="col-span-2 hidden" data-app="flow" id="flowVideoModelContainer">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="clapperboard" class="w-3 h-3" style="color:#e8c84a;"></i> โมเดลวิดีโอ</label>
+                        <select id="videoModel" class="w-full rounded-md p-2 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="veo31_fast" style="background-color: #1a1a24;">Veo 3.1 - Fast (ใช้เครดิต)</option>
+                            <option value="veo31_free" style="background-color: #1a1a24;">Veo 3.1 - Lower Priority (ฟรี 0 เครดิต)</option>
+                        </select>
+                        <p class="text-[10px] text-gray-500 mt-1 flex items-center gap-1">
+                            <i data-lucide="lightbulb" class="w-3 h-3" style="color:#e8c84a;"></i> Lower Priority = ไม่เสียเครดิต แต่อาจรอคิวนานกว่า
+                        </p>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ 2. สไตล์ภาพและวิดีโอ ═══ -->
+        <div class="card-bg" data-app="flow">
+            <div class="section-header p-3 flex justify-between items-center" data-target="styleSettings">
+                <h2 class="font-semibold text-white flex items-center gap-2">
+                    <i data-lucide="palette" class="w-4 h-4" style="color:#e8c84a;"></i> สไตล์ภาพและวิดีโอ
+                </h2>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform rotate-180" id="icon-styleSettings"></i>
+            </div>
+            <div id="styleSettings" class="section-content max-h-0 px-3 border-t border-[#2a2a3a] border-transparent">
+                <div class="grid grid-cols-2 gap-3 mt-3 pb-3">
+                    <div>
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="image" class="w-3 h-3" style="color:#10b981;"></i> สไตล์ภาพ</label>
+                        <select id="imageStyle" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="tiktok_normal" style="background-color: #1a1a24;">TikTok คนธรรมดา</option>
+                            <option value="cgi_realistic" style="background-color: #1a1a24;">CGI สมจริง</option>
+                            <option value="professional" style="background-color: #1a1a24;">มืออาชีพ</option>
+                            <option value="minimal" style="background-color: #1a1a24;">มินิมอล</option>
+                            <option value="luxury" style="background-color: #1a1a24;">หรูหรา</option>
+                            <option value="modern" style="background-color: #1a1a24;">โมเดิร์น</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="clapperboard" class="w-3 h-3" style="color:#d4af37;"></i> สไตล์วิดีโอ</label>
+                        <select id="videoStyle" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="ugc_review" style="background-color: #1a1a24;">UGC รีวิว</option>
+                            <option value="cinematic" style="background-color: #1a1a24;">Cinematic</option>
+                            <option value="fast_cut" style="background-color: #1a1a24;">ตัดเร็ว (Fast Cut)</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="video" class="w-3 h-3"></i> มุมกล้อง (วิดีโอ)</label>
+                        <select id="videoCameraMotion" class="w-full rounded-md p-1.5 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="static" style="background-color: #1a1a24;">นิ่ง (แนะนำ)</option>
+                            <option value="pan" style="background-color: #1a1a24;">แพนกล้อง</option>
+                            <option value="zoom_in" style="background-color: #1a1a24;">ซูมเข้า</option>
+                        </select>
+                    </div>
+
+                    <!-- Toggle Options -->
+                    <div class="col-span-2 space-y-2">
+                        <label class="toggle-option" id="toggleRandomSceneWrap">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="randomSceneToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-200 flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3 icon-gold"></i> สุ่มฉาก/สถานที่แต่ละรอบ</span>
+                                <p class="text-[10px] text-gray-500 mt-0.5">AI จะคิดฉากให้แต่ละคลิปไม่ซ้ำกัน</p>
+                            </div>
+                        </label>
+
+                        <label class="toggle-option" id="toggleRandomImageStyleWrap">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="randomImageStyleToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-200 flex items-center gap-1"><i data-lucide="sparkles" class="w-3 h-3" style="color:#10b981;"></i> สุ่มสไตล์ภาพแต่ละรอบ</span>
+                                <p class="text-[10px] text-gray-500 mt-0.5 leading-tight">สุ่มจาก: รีวิว, มืออาชีพ, TikTok, มินิมอล, หรูหรา</p>
+                            </div>
+                        </label>
+
+                        <label class="toggle-option" id="toggleRandomVideoStyleWrap">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="randomVideoStyleToggle">
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <div>
+                                <span class="text-xs text-gray-200 flex items-center gap-1"><i data-lucide="palette" class="w-3 h-3" style="color:#e8c84a;"></i> สุ่มสไตล์วิดีโอแต่ละรอบ</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ 3. ข้อความและบทพูด ═══ -->
+        <div class="card-bg">
+            <div class="section-header p-3 flex justify-between items-center" data-target="textSettings">
+                <h2 class="font-semibold text-white flex items-center gap-2">
+                    <i data-lucide="message-square" class="w-4 h-4" style="color:#60a5fa;"></i> ข้อความและบทพูด
+                </h2>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform rotate-180" id="icon-textSettings"></i>
+            </div>
+            <div id="textSettings" class="section-content max-h-0 px-3 border-t border-[#2a2a3a] border-transparent">
+                <div class="space-y-3 mt-3 pb-3">
+                    <div data-app="both">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="tag" class="w-3 h-3" style="color:#e8c84a;"></i> ข้อความบนภาพ <span class="text-gray-500 text-[10px]">(ไม่บังคับ)</span></label>
+                        <input id="overlayText" type="text" class="w-full input-bg rounded-md p-2 text-xs" placeholder="เช่น: ลด 50%, ของแท้ 100%, ส่งฟรี!">
+                    </div>
+                    <div class="space-y-2" data-app="both">
+                        <label class="toggle-option" id="toggleExactOverlayWrap">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="useExactOverlayToggle">
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <span class="text-xs text-gray-200">ใช้ข้อความนี้เลย (ไม่ต้องให้ AI แต่ง)</span>
+                        </label>
+                        <label class="toggle-option" id="toggleNoOverlayWrap">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="noOverlayToggle">
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <span class="text-xs flex items-center gap-1" style="color:#ef4444;"><i data-lucide="ban" class="w-3 h-3"></i> ไม่ต้องมีข้อความบนภาพเลย</span>
+                        </label>
+                    </div>
+                    <div data-app="flow" class="hidden">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i> ท่อนพูดที่อยากให้มี <span class="text-gray-500 text-[10px]">(ไม่บังคับ)</span></label>
+                        <input id="speechLine" type="text" class="w-full input-bg rounded-md p-2 text-xs" placeholder="เช่น: ลดราคาพิเศษวันนี้เท่านั้น!, กดสั่งเลยจ้า">
+                        <p class="text-[10px] text-gray-500 mt-1">AI จะนำไปแต่งให้เข้ากับบทพูดโดยรวม</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ 4. ตัวเลือกเพิ่มเติม ═══ -->
+        <div class="card-bg">
+            <div class="section-header p-3 flex justify-between items-center" data-target="advancedSettings">
+                <h2 class="font-semibold text-white flex items-center gap-2">
+                    <i data-lucide="wrench" class="w-4 h-4 icon-dim"></i> ตัวเลือกเพิ่มเติม
+                </h2>
+                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transition-transform rotate-180" id="icon-advancedSettings"></i>
+            </div>
+            <div id="advancedSettings" class="section-content max-h-0 px-3 border-t border-[#2a2a3a] border-transparent">
+                <div class="space-y-3 mt-3 pb-3">
+
+                <!-- API Provider (Settings) -->
+                <div class="p-3 rounded-lg" style="background-color:#12121a;border:1px solid #2a2a3a;" data-app="both">
+                    <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1">
+                        <i data-lucide="cpu" class="w-3 h-3" style="color:#d4af37;"></i> AI Provider (แต่งข้อความ)
+                    </label>
+                    <div class="flex items-center justify-between w-full rounded-md p-2 text-xs mb-2" style="background-color: #1a1a24; border: 1px solid #3f3f4e;">
+                        <select id="aiProvider" class="bg-transparent text-white outline-none flex-1 border-none cursor-pointer" style="background-color: #1a1a24;">
+                            <option value="groq" style="background-color: #1a1a24;">Groq (Llama 3.3 70B - เร็วมาก)</option>
+                            <option value="gemini" style="background-color: #1a1a24;">Gemini (Gemini 2.0 Flash)</option>
+                            <option value="openrouter" style="background-color: #1a1a24;">OpenRouter (Free Models)</option>
+                        </select>
+                        <button type="button" id="btnEditApiConfig" class="text-xs text-[#d4af37] px-2 hover:underline ml-2 border-l border-gray-600">ตั้งค่า Key</button>
+                    </div>
+
+                    <div id="aiProviderFlowWrap" class="hidden mb-2">
+                        <label class="text-gray-400 text-xs mb-1.5 flex items-center gap-1">
+                            <i data-lucide="languages" class="w-3 h-3" style="color:#60a5fa;"></i> AI แต่งบทพูด (ภาษาไทย)
+                        </label>
+                        <select id="aiProviderFlow" class="w-full rounded-md p-2 text-xs" style="background-color: #1a1a24; color: #e2e8f0; border: 1px solid #3f3f4e;">
+                            <option value="groq_thai" style="background-color: #1a1a24;">Groq – Llama 3.3 70B (ไทย)</option>
+                            <option value="gemini_thai" style="background-color: #1a1a24;">Gemini – Flash (ไทย)</option>
+                            <option value="openrouter_thai" style="background-color: #1a1a24;">OpenRouter – Free (ไทย)</option>
+                        </select>
+                    </div>
+                </div>
+
+                    <!-- AI Enhance -->
+                    <label class="toggle-option active" id="toggleAiEnhanceWrap" data-app="both">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="aiEnhanceToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-200 flex items-center gap-1"><i data-lucide="wand-2" class="w-3 h-3 icon-gold"></i> AI Enhance พรอมต์อัตโนมัติ</span>
+                            <p class="text-[10px] text-gray-500 mt-0.5">ให้ AI แต่งประโยคให้ยาวและสวยงามขึ้น</p>
+                        </div>
+                    </label>
+
+                    <!-- ต่อฉากอัตโนมัติ -->
+                    <label class="toggle-option active hidden" id="toggleAutoExtendWrap" data-app="flow">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="autoExtendToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-200 flex items-center gap-1"><i data-lucide="clapperboard" class="w-3 h-3 icon-gold"></i> ต่อฉากอัตโนมัติ</span>
+                            <p class="text-[10px] text-gray-500 mt-0.5">ต่อฉากคลิป 8 วินาที → 16 วินาที (โหลดลงเครื่องออโต้)</p>
+                        </div>
+                    </label>
+
+                    <!-- TikTok Auto Post -->
+                    <label class="toggle-option hidden" id="toggleTiktokPostWrap" data-app="flow">
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="tiktokPostToggle">
+                            <span class="toggle-slider"></span>
+                        </div>
+                        <div>
+                            <span class="text-xs text-gray-200 flex items-center gap-1"><i data-lucide="share-2" class="w-3 h-3"></i> โพส TikTok อัตโนมัติ</span>
+                            <p class="text-[10px] text-gray-500 mt-0.5">ติ๊กเพื่อโพส TikTok อัตโนมัติหลังสร้างเสร็จ</p>
+                        </div>
+                    </label>
+
+                    <!-- Loop Settings -->
+                    <div class="p-3 rounded-lg" style="background-color:#12121a;border:1px solid #2a2a3a;" data-app="both">
+                        <label class="flex items-center gap-2 mb-3 cursor-pointer select-none" id="toggleAutoLoopWrap">
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="autoLoopToggle" checked>
+                                <span class="toggle-slider"></span>
+                            </div>
+                            <span class="text-xs flex items-center gap-1" style="color:#60a5fa;"><i data-lucide="repeat" class="w-3 h-3"></i> รันวนซ้ำอัตโนมัติ</span>
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-gray-500 text-[10px] mb-1 block">จำนวนรอบ</label>
+                                <select id="loopCount" class="w-full input-bg rounded p-1.5 text-xs" style="color:#60a5fa;">
+                                    <option value="0">ไม่จำกัด ∞</option>
+                                    <option value="5">5 รอบ</option>
+                                    <option value="10">10 รอบ</option>
+                                    <option value="20">20 รอบ</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-gray-500 text-[10px] mb-1 block">พักระหว่างรอบ</label>
+                                <select id="loopDelay" class="w-full input-bg rounded p-1.5 text-xs">
+                                    <option value="30">30 วินาที</option>
+                                    <option value="60">60 วินาที</option>
+                                    <option value="120">2 นาที</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- หน่วงเวลาระหว่างชุด -->
+                    <div data-app="both">
+                        <label class="text-gray-400 text-[11px] mb-1.5 flex items-center gap-1"><i data-lucide="timer" class="w-3 h-3" style="color:#60a5fa;"></i> หน่วงเวลาระหว่างชุด</label>
+                        <select id="delayBetween" class="w-full input-bg rounded p-1.5 text-xs">
+                            <option value="10">10 วินาที</option>
+                            <option value="15" selected>15 วินาที</option>
+                            <option value="30">30 วินาที</option>
+                            <option value="60">1 นาที</option>
+                        </select>
+                        <p class="text-[10px] text-gray-500 mt-1">เวลาพักหลังทำแต่ละชุดเสร็จ เพื่อลดการโดนแบน</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ 5. ชุดสินค้า ═══ -->
+        <div class="card-bg" style="border-left:3px solid #d4af37;">
+            <div class="p-3 flex justify-between items-center border-b border-[#2a2a3a]">
+                <h2 class="font-semibold text-white flex items-center gap-2">
+                    <i data-lucide="package" class="w-4 h-4 icon-gold"></i> ชุดสินค้า (<span id="setCountText">1</span>/15)
+                </h2>
+                <button id="btnAddSet" class="text-xs text-white px-2.5 py-1 rounded shadow-md flex items-center gap-1 transition cursor-pointer" style="background:linear-gradient(135deg,#d4af37,#b8962e);color:#0e0e14;font-weight:600;">
+                    <i data-lucide="plus" class="w-3 h-3"></i> เพิ่มชุด
+                </button>
+            </div>
+
+            <div id="productSetsContainer" class="p-3 space-y-4">
+                <!-- ชุดสินค้าจะถูกแทรกที่นี่ด้วย JS -->
+            </div>
+        </div>
+
+        <!-- ═══ สถานะการทำงาน Queue ═══ -->
+        <div id="queueContainer" class="hidden mt-4 border rounded-xl p-3 shadow-sm" style="background-color:#16161f;border-color:#2a2a3a;">
+            <div class="flex items-center justify-between mb-3 border-b pb-2" style="border-color:#2a2a3a;">
+                <h3 class="font-bold text-gray-200 text-xs flex items-center gap-1.5">
+                    <i data-lucide="activity" class="w-3.5 h-3.5 icon-gold"></i> สถานะการทำงาน (Queue)
+                </h3>
+                <span id="queueStatus" class="text-[10px] text-gray-500 font-medium px-2 py-0.5 rounded-full" style="background-color:#1a1a20;">0 งาน</span>
+            </div>
+            <div class="flex items-center justify-between mb-1 px-1">
+                <span class="text-[10px] text-gray-400">Live Log</span>
+                <button id="btnClearLog" class="btn-icon" style="background:rgba(239,68,68,0.12);color:#ef4444;padding:6px 10px;font-size:10px;">
+                    ล้าง Log
+                </button>
+            </div>
+            <div id="liveLog" class="mb-2 p-2 rounded text-[10px] font-mono max-h-[100px] overflow-y-auto" style="background:#0a0a10;border:1px solid #1a1a2a;color:#10b981;">
+                <div class="text-gray-500">รอคำสั่ง...</div>
+            </div>
+            <div id="queueList" class="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                <div class="text-xs text-gray-500 text-center py-2">ไม่มีงานในคิว</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═══ Sticky Bottom Action ═══ -->
+    <div class="absolute bottom-0 left-0 right-0 p-3 z-30 flex gap-2" style="background-color:#16161f;border-top:1px solid #2a2a3a;box-shadow:0 -10px 25px rgba(0,0,0,0.6);">
+        <button id="btnRun" class="btn-primary flex-1 flex justify-center items-center gap-2 cursor-pointer">
+            <i data-lucide="rocket" class="w-4 h-4"></i>
+            เริ่ม Auto Pipeline
+        </button>
+        <button id="btnPause" class="hidden btn-icon flex justify-center items-center cursor-pointer" style="background-color:#f59e0b;color:#0e0e14;">
+            <i data-lucide="pause" class="w-4 h-4"></i>
+        </button>
+        <button id="btnResume" class="hidden btn-icon flex justify-center items-center cursor-pointer" style="background-color:#3b82f6;color:white;">
+            <i data-lucide="play" class="w-4 h-4"></i>
+        </button>
+        <button id="btnClear" class="btn-icon flex justify-center items-center cursor-pointer" style="background-color:#ef4444;color:white;">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+        </button>
+    </div>
+
+    <!-- ═══ API Settings Modal ═══ -->
+    <div id="apiSettingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden text-xs">
+        <div class="card-bg w-full max-w-[380px] rounded-xl overflow-hidden shadow-2xl border border-[#2a2a3a] flex flex-col max-h-[90vh]">
+            <div class="p-3 border-b border-[#2a2a3a] flex justify-between items-center bg-[#16161f]">
+                <h3 class="font-bold text-white flex items-center gap-2 text-sm">
+                    <i data-lucide="settings" class="w-4 h-4 icon-gold"></i> ตั้งค่า API Keys
+                </h3>
+                <button id="btnCloseApiModal" class="text-gray-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 space-y-4 overflow-y-auto w-full">
+                <!-- Groq -->
+                <div class="p-3 rounded-lg" style="background-color:#12121a;border:1px solid #2a2a3a;">
+                    <label class="text-white font-medium mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="zap" class="w-3 h-3 text-orange-400"></i> Groq API Key</span>
+                        <a href="https://console.groq.com/keys" target="_blank" class="text-[10px] text-blue-400 hover:underline">รับ Key ที่นี่</a>
+                    </label>
+                    <div class="flex flex-col gap-2">
+                        <div class="relative w-full">
+                            <input id="apiKeyGroq" type="password" spellcheck="false" class="w-full text-white rounded-md p-2 text-xs pr-8" style="background-color: #1a1a24; border: 1px solid #3f3f4e;" placeholder="gsk_...">
+                            <button id="btnToggleKeyGroq" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2 w-full justify-between items-center">
+                            <span id="validationMsgGroq" class="text-[10px] hidden" style="color:#10b981;"></span>
+                            <div class="flex gap-2 ml-auto shrink-0">
+                                <button id="btnTestGroq" class="px-2 py-1.5 rounded-md bg-[#2a2a3a] hover:bg-[#3f3f4e] text-white transition disabled:opacity-50">
+                                    ทดสอบ
+                                </button>
+                                <button id="btnSaveGroq" class="px-3 py-1.5 rounded-md transition font-medium" style="background:rgba(212,175,55,0.2);color:#d4af37;border:1px solid rgba(212,175,55,0.4);">
+                                    บันทึก
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gemini -->
+                <div class="p-3 rounded-lg" style="background-color:#12121a;border:1px solid #2a2a3a;">
+                    <label class="text-white font-medium mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="sparkles" class="w-3 h-3 text-blue-400"></i> Gemini API Key</span>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[10px] text-blue-400 hover:underline">รับ Key ที่นี่</a>
+                    </label>
+                    <div class="flex flex-col gap-2">
+                        <div class="relative w-full">
+                            <input id="apiKeyGemini" type="password" spellcheck="false" class="w-full text-white rounded-md p-2 text-xs pr-8" style="background-color: #1a1a24; border: 1px solid #3f3f4e;" placeholder="AIzaSy...">
+                            <button id="btnToggleKeyGemini" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2 w-full justify-between items-center">
+                            <span id="validationMsgGemini" class="text-[10px] hidden" style="color:#10b981;"></span>
+                            <div class="flex gap-2 ml-auto shrink-0">
+                                <button id="btnTestGemini" class="px-2 py-1.5 rounded-md bg-[#2a2a3a] hover:bg-[#3f3f4e] text-white transition disabled:opacity-50">
+                                    ทดสอบ
+                                </button>
+                                <button id="btnSaveGemini" class="px-3 py-1.5 rounded-md transition font-medium" style="background:rgba(212,175,55,0.2);color:#d4af37;border:1px solid rgba(212,175,55,0.4);">
+                                    บันทึก
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OpenRouter -->
+                <div class="p-3 rounded-lg" style="background-color:#12121a;border:1px solid #2a2a3a;">
+                    <label class="text-white font-medium mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="globe" class="w-3 h-3 text-purple-400"></i> OpenRouter Key</span>
+                        <a href="https://openrouter.ai/keys" target="_blank" class="text-[10px] text-blue-400 hover:underline">รับ Key ที่นี่</a>
+                    </label>
+                    <div class="flex flex-col gap-2">
+                        <div class="relative w-full">
+                            <input id="apiKeyOpenRouter" type="password" spellcheck="false" class="w-full text-white rounded-md p-2 text-xs pr-8" style="background-color: #1a1a24; border: 1px solid #3f3f4e;" placeholder="sk-or-v1-...">
+                            <button id="btnToggleKeyOpenRouter" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
+                                <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </div>
+                        <div class="flex gap-2 w-full justify-between items-center">
+                            <span id="validationMsgOpenRouter" class="text-[10px] hidden" style="color:#10b981;"></span>
+                            <div class="flex gap-2 ml-auto shrink-0">
+                                <button id="btnTestOpenRouter" class="px-2 py-1.5 rounded-md bg-[#2a2a3a] hover:bg-[#3f3f4e] text-white transition disabled:opacity-50">
+                                    ทดสอบ
+                                </button>
+                                <button id="btnSaveOpenRouter" class="px-3 py-1.5 rounded-md transition font-medium" style="background:rgba(212,175,55,0.2);color:#d4af37;border:1px solid rgba(212,175,55,0.4);">
+                                    บันทึก
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="sidepanel.js"></script>
+</body>
+</html>

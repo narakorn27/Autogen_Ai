@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Arin Automation AI",
+  "version": "1.0",
+  "description": "Auto Gen Image on Google Whisk & ImageFX — Arin Edition",
+  "permissions": [
+    "storage",
+    "sidePanel",
+    "scripting",
+    "activeTab",
+    "downloads",
+    "alarms",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess"
+  ],
+  "host_permissions": [
+    "*://labs.google/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://labs.google/*"
+      ],
+      "js": [
+        "content-flow.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "คลิกเพื่อเปิด Arin Automation AI"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["Injected.js", "InjectedFlow.js"],
+      "matches": ["*://labs.google/*"]
+    }
+  ]
+}
