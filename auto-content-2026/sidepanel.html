@@ -25,6 +25,22 @@
                 <button class="tab-btn" data-tab="queue">📋 Queue</button>
                 <button class="tab-btn" data-tab="log">📊 Log</button>
             </div>
+
+            <!-- Analytics Mini Stats -->
+            <div class="stats-bar mt-10">
+                <div class="stat-item">
+                    <span class="stat-label">โพสต์สำเร็จ</span>
+                    <span class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">ในคิว</span>
+                    <span class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">เพจ</span>
+                    <span class="stat-value">0</span>
+                </div>
+            </div>
         </header>
 
         <main>
@@ -34,8 +50,15 @@
                     <div class="field-row">
                         <select id="trendSource" class="select-sm">
                             <option value="google_trends">🔥 Google Trends</option>
-                            <option value="tmdb" disabled>🎬 TMDB Movies (Phase 3)</option>
-                            <option value="ai_news" disabled>🤖 AI News (Phase 3)</option>
+                            <option value="tmdb">🎬 TMDB Movies</option>
+                            <option value="newsapi_tech">💻 ข่าวเทคโนโลยี (NewsAPI)</option>
+                            <option value="newsapi_ent">⭐ ข่าวบันเทิง (NewsAPI)</option>
+                            <option value="thairath">📰 ไทยรัฐ (Thairath)</option>
+                            <option value="matichon">📰 มติชน (Matichon)</option>
+                            <option value="khaosod">📰 ข่าวสด (Khaosod)</option>
+                            <option value="ai_news">🤖 ข่าว AI (Google News)</option>
+                            <option value="games_news">🎮 ข่าวเกมส์ (Google News)</option>
+                            <option value="travel_news">✈️ ข่าวท่องเที่ยว (Google News)</option>
                         </select>
                         <select id="trendGeo" class="select-sm">
                             <option value="TH">🇹🇭 TH</option>
@@ -59,17 +82,86 @@
 
             <!-- TAB 2: Compose -->
             <section id="compose-tab" class="tab-content">
-                <div class="section">
-                    <h3>สร้างโพสต์ (AI Composer)</h3>
-                    <p class="placeholder-text">กำลังออกแบบพื้นที่เขียนโพสต์ด้วย Gemini ใน Phase ถัดไป...</p>
+                <div class="composer-container">
+                    <div class="field-row mb-10">
+                        <select id="composeProvider" class="select-sm" style="flex: 0.8;">
+                            <option value="gemini">🤖 Gemini</option>
+                            <option value="groq">⚡ Groq</option>
+                            <option value="openrouter">🌐 OpenRouter</option>
+                        </select>
+                        <select id="composeTone" class="select-sm" style="flex: 1;">
+                            <option value="casual">😊 เป็นกันเอง</option>
+                            <option value="professional">👔 ทางการ</option>
+                            <option value="clickbait">🔥 ดึงดูด</option>
+                            <option value="sales">💰 ขายของ</option>
+                        </select>
+                        <input type="text" id="composeNiche" class="input-sm" placeholder="เช่น เพจหนัง" style="flex: 1.2;">
+                    </div>
+                    
+                    <button class="btn-primary w-full" id="btnGenerateAI">✨ ให้ AI เขียนโพสต์ให้</button>
+                    
+                    <div class="mt-10">
+                        <textarea id="postContent" class="compose-textarea" placeholder="เนื้อหาโพสต์จะแสดงที่นี่..."></textarea>
+                    </div>
+
+                    <!-- AI Image Settings -->
+                    <div class="field-row mt-10">
+                        <select id="imageProvider" class="select-sm" style="flex: 1;">
+                            <option value="gemini">🖼️ Gemini (มีโควต้า)</option>
+                            <option value="huggingface" selected>🤗 Hugging Face (ฟรีไม่อั้น)</option>
+                        </select>
+                        <select id="imageRatio" class="select-sm" style="flex: 0.8;">
+                            <option value="1:1">จัตุรัส 1:1</option>
+                            <option value="16:9">นอน 16:9</option>
+                            <option value="4:3">นอน 4:3</option>
+                            <option value="9:16">ตั้ง 9:16</option>
+                            <option value="3:4">ตั้ง 3:4</option>
+                        </select>
+                    </div>
+                    <div class="field-row mt-5">
+                        <select id="imageStyle" class="select-sm" style="flex: 1;">
+                            <option value="Photorealistic">📸 สมจริง (Real)</option>
+                            <option value="Cinematic">🎬 ซีนีมาติก (Movie)</option>
+                            <option value="3D">🕹️ การ์ตูน 3D</option>
+                            <option value="Minimalist">พาสเทล / มินิมอล</option>
+                        </select>
+                        <button class="btn-primary-sm" id="btnGenerateImage" style="flex: 1.5; padding: 6px;">🎨 ครีเอทภาพ AI</button>
+                    </div>
+
+                    <div class="post-settings mt-10">
+                        <div class="image-preview-area" id="imagePreviewContainer">
+                            <span class="placeholder-text" style="font-size:11px;">กดปุ่มเจนภาพ 👆</span>
+                        </div>
+                        <div class="actions-col">
+                            <select id="postPage" class="select-sm w-full mb-10">
+                                <option value="">-- เลือกเพจที่จะโพสต์ --</option>
+                            </select>
+                            <button class="btn-primary-sm w-full mb-10" id="btnPostNow" style="padding:10px;">📤 โพสต์ Facebook ทันที</button>
+                            
+                            <div class="schedule-row" style="display: flex; gap: 8px; margin-bottom: 10px;">
+                                <input type="datetime-local" id="scheduleTime" class="input-sm" style="flex: 1;">
+                                <button class="btn-warning-sm" id="btnSchedulePost" style="flex: 1; padding: 6px; font-size: 11px;">⏰ ตั้งเวลาโพสต์</button>
+                            </div>
+
+                            <button class="btn-secondary w-full" id="btnSchedule">💾 บันทึกสุ่มไว้ในคิว (Draft)</button>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- TAB 3: Queue -->
             <section id="queue-tab" class="tab-content">
                 <div class="section">
-                    <h3>คิวโพสต์ล่วงหน้า</h3>
-                    <p class="placeholder-text">ไม่มีงานตั้งเวลาในคิว</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="margin: 0;">คิวโพสต์ล่วงหน้า (Drafts)</h3>
+                        <button class="btn-danger-sm" id="btnClearQueue" style="padding: 4px 8px; font-size: 11px;">ล้างคิวทั้งหมด</button>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
+                        คุณสามารถบันทึกโพสต์มาพักไว้ที่นี่ เพื่ออัปโหลดเปลี่ยนรูปภาพของคุณเอง แล้วค่อยกดโพสต์ได้ครับ
+                    </p>
+                    <div class="queue-list" id="queueListContainer">
+                        <p class="placeholder-text">ไม่มีงานตั้งเวลาในคิว</p>
+                    </div>
                 </div>
             </section>
 
@@ -89,8 +181,7 @@
         <footer>
             <button class="btn-secondary w-full" id="btnOpenSettings">⚙️ ตั้งค่าระบบ (Settings)</button>
         </footer>
-    </div>
-    <script src="lib/trends.js"></script>
-    <script src="sidepanel.js"></script>
+    <!-- Scripts -->
+    <script type="module" src="sidepanel.js"></script>
 </body>
 </html>
