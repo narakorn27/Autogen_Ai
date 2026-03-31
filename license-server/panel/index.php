@@ -1,35 +1,33 @@
 <?php
-// ── Admin Panel — จัดการ License Keys ──
-// ⚠️ ตั้ง password ก่อนใช้งาน!
-
 session_start();
-$ADMIN_PASS = 'Dev_New27'; // ← เปลี่ยนทันที!
+$ADMIN_PASS = 'Dev_New27';
 
-// Simple auth
 if (!isset($_SESSION['admin_logged_in'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['pass'] ?? '') === $ADMIN_PASS) {
         $_SESSION['admin_logged_in'] = true;
-    } else {
-        echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Login</title>
-        <style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;}
-        form{background:#16213e;padding:40px;border-radius:12px;color:#fff;}
-        input{padding:10px;border:1px solid #444;border-radius:6px;background:#0f3460;color:#fff;width:200px;margin:8px 0;}
-        button{padding:10px 24px;background:#e94560;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
-        </style></head><body>
-        <form method="POST"><h2>🔐 Admin Login</h2>
-        <input type="password" name="pass" placeholder="Password" autofocus>
-        <br><button type="submit">เข้าสู่ระบบ</button></form></body></html>';
+        header('Location: ' . $_SERVER['PHP_SELF']);
         exit;
     }
+
+    echo '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Login</title>
+    <style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#1a1a2e;}
+    form{background:#16213e;padding:40px;border-radius:12px;color:#fff;}
+    input{padding:10px;border:1px solid #444;border-radius:6px;background:#0f3460;color:#fff;width:200px;margin:8px 0;}
+    button{padding:10px 24px;background:#e94560;border:none;border-radius:6px;color:#fff;cursor:pointer;font-weight:bold;}
+    </style></head><body>
+    <form method="POST"><h2>Admin Login</h2>
+    <input type="password" name="pass" placeholder="Password" autofocus>
+    <br><button type="submit">เข้าสู่ระบบ</button></form></body></html>';
+    exit;
 }
 
 require_once __DIR__ . '/../inc/db.php';
 require_once __DIR__ . '/../inc/auth.php';
 
 $db = getDB();
-$msg = '';
+$msg = $_SESSION['flash_msg'] ?? '';
+unset($_SESSION['flash_msg']);
 
-// ── Actions ──
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -44,29 +42,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $maxDev = (int)($_POST['max_devices'] ?? 1);
 
         $stmt = $db->prepare('INSERT INTO licenses (license_key, customer_name, customer_email, product, plan_type, max_devices, expires_at) VALUES (:key, :name, :email, :product, :plan, :max, DATE_ADD(NOW(), INTERVAL :days DAY))');
-        $stmt->execute(['key' => $key, 'name' => $name, 'email' => $email, 'product' => $product, 'plan' => $plan, 'max' => $maxDev, 'days' => $expDays]);
-        $msg = "✅ สร้าง License สำเร็จ: <strong>$key</strong>";
+        $stmt->execute([
+            'key' => $key,
+            'name' => $name,
+            'email' => $email,
+            'product' => $product,
+            'plan' => $plan,
+            'max' => $maxDev,
+            'days' => $expDays
+        ]);
+        $_SESSION['flash_msg'] = "✅ สร้าง License สำเร็จ: <strong>$key</strong>";
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
+    }
 
-    } elseif ($action === 'revoke') {
+    if ($action === 'revoke') {
         $id = (int)($_POST['id'] ?? 0);
         $db->prepare('UPDATE licenses SET is_active = 0 WHERE id = :id')->execute(['id' => $id]);
         $db->prepare('DELETE FROM device_bindings WHERE license_id = :id')->execute(['id' => $id]);
-        $msg = "🚫 ยกเลิก License #$id แล้ว";
+        $_SESSION['flash_msg'] = "🚫 ยกเลิก License #$id แล้ว";
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
+    }
 
-    } elseif ($action === 'extend') {
+    if ($action === 'extend') {
         $id = (int)($_POST['id'] ?? 0);
         $days = (int)($_POST['extend_days'] ?? 30);
-        $db->prepare('UPDATE licenses SET expires_at = DATE_ADD(GREATEST(expires_at, NOW()), INTERVAL :days DAY), is_active = 1 WHERE id = :id')->execute(['id' => $id, 'days' => $days]);
-        $msg = "⏰ ขยายเวลา License #$id อีก $days วัน";
+        $db->prepare('UPDATE licenses SET expires_at = DATE_ADD(GREATEST(expires_at, NOW()), INTERVAL :days DAY), is_active = 1 WHERE id = :id')->execute([
+            'id' => $id,
+            'days' => $days
+        ]);
+        $_SESSION['flash_msg'] = "⏰ ขยายเวลา License #$id อีก $days วัน";
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
+    }
 
-    } elseif ($action === 'logout') {
+    if ($action === 'logout') {
         session_destroy();
         header('Location: ' . $_SERVER['PHP_SELF']);
         exit;
     }
 }
 
-// ── Fetch Data ──
 $licenses = $db->query('SELECT l.*, (SELECT COUNT(*) FROM device_bindings WHERE license_id = l.id) as device_count FROM licenses l ORDER BY l.created_at DESC')->fetchAll();
 $stats = $db->query("SELECT 
     COUNT(*) as total,
@@ -119,22 +136,23 @@ $stats = $db->query("SELECT
 <body>
 <div class="wrap">
     <div class="topbar">
-        <h1>🔑 License Admin</h1>
-        <form method="POST" style="display:inline;"><input type="hidden" name="action" value="logout"><button class="logout-btn" type="submit">ออกจากระบบ</button></form>
+        <h1>License Admin</h1>
+        <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="logout">
+            <button class="logout-btn" type="submit">ออกจากระบบ</button>
+        </form>
     </div>
 
     <?php if ($msg): ?><div class="msg"><?= $msg ?></div><?php endif; ?>
 
-    <!-- Stats -->
     <div class="stats">
         <div class="stat-card"><div class="num"><?= $stats['total'] ?? 0 ?></div><div class="label">ทั้งหมด</div></div>
         <div class="stat-card"><div class="num"><?= $stats['active'] ?? 0 ?></div><div class="label">Active</div></div>
         <div class="stat-card"><div class="num"><?= $stats['expired'] ?? 0 ?></div><div class="label">Expired</div></div>
     </div>
 
-    <!-- Create New -->
     <div class="card">
-        <h3>➕ สร้าง License ใหม่</h3>
+        <h3>สร้าง License ใหม่</h3>
         <form method="POST">
             <input type="hidden" name="action" value="create">
             <div class="form-row">
@@ -168,20 +186,19 @@ $stats = $db->query("SELECT
                     <label>Email</label>
                     <input type="email" name="customer_email" placeholder="email (optional)">
                 </div>
-                <button class="btn btn-primary" type="submit">🔑 สร้าง Key</button>
+                <button class="btn btn-primary" type="submit">สร้าง Key</button>
             </div>
         </form>
     </div>
 
-    <!-- License List -->
     <div class="card">
-        <h3>📋 รายการ License (<?= count($licenses) ?>)</h3>
+        <h3>รายการ License (<?= count($licenses) ?>)</h3>
         <table>
             <thead>
                 <tr><th>#</th><th>Key</th><th>Product</th><th>Plan</th><th>ลูกค้า</th><th>Devices</th><th>หมดอายุ</th><th>สถานะ</th><th>Actions</th></tr>
             </thead>
             <tbody>
-            <?php foreach ($licenses as $lic): 
+            <?php foreach ($licenses as $lic):
                 $isActive = $lic['is_active'] && strtotime($lic['expires_at']) > time();
                 $isExpired = strtotime($lic['expires_at']) <= time();
             ?>
