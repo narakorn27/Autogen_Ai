@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Content 2026 — News Dashboard</title>
+    <meta name="description" content="ดึงข่าวเทรนด์ล่าสุดจากหลายแหล่ง สำหรับสร้างคอนเทนต์อัตโนมัติ">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+    <!-- Top Bar -->
+    <header class="topbar">
+        <div class="topbar-left">
+            <h1>⚡ Auto Content <span class="brand-accent">2026</span></h1>
+            <span class="badge">News Dashboard</span>
+        </div>
+        <div class="topbar-right">
+            <button class="btn-theme-toggle" id="themeToggle" title="สลับโหมด มืด/สว่าง">🌓</button>
+            <span class="live-dot"></span>
+            <span class="time-display" id="timeDisplay">--:--</span>
+        </div>
+    </header>
+
+    <!-- Filter Bar -->
+    <nav class="filterbar">
+        <div class="filter-chips" id="filterChips">
+            <button class="chip active" data-source="all">🌐 ทั้งหมด</button>
+            <button class="chip" data-source="thairath">📰 ไทยรัฐ</button>
+            <button class="chip" data-source="newsapi_tech">💻 NewsAPI</button>
+            <button class="chip" data-source="ai_news">🤖 AI</button>
+            <button class="chip" data-source="games_news">🎮 เกม</button>
+            <button class="chip" data-source="travel_news">✈️ ท่องเที่ยว</button>
+            <button class="chip" data-source="google_trends">🔥 Trends</button>
+            <button class="chip" data-source="tmdb">🎬 หนัง</button>
+            <button class="chip" data-source="tips">💡 Tips</button>
+        </div>
+        <div class="filter-controls">
+            <div class="control-group">
+                <select id="dashboardSource" class="select-modern">
+                    <option value="all">🌐 แหล่งข่าวทั้งหมด</option>
+                    <option value="google_trends">🔥 Google Trends</option>
+                    <option value="newsapi_tech">💻 ข่าวเทคโนโลยี (NewsAPI)</option>
+                    <option value="thairath">📰 ไทยรัฐ (Thairath)</option>
+                    <option value="matichon">📰 มติชน (Matichon)</option>
+                    <option value="khaosod">📰 ข่าวสด (Khaosod)</option>
+                    <option value="ai_news">🤖 ข่าว AI (Google News)</option>
+                    <option value="games_news">🎮 เกม (Google News)</option>
+                    <option value="travel_news">✈️ ท่องเที่ยว (Google News)</option>
+                    <option value="tmdb">🎬 TMDB Movies</option>
+                    <option value="tips">💡 Tips / Tricks</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <select id="dashboardGeo" class="select-modern">
+                    <option value="TH">🇹🇭 ไทย (TH)</option>
+                    <option value="US">🇺🇸 อเมริกา (US)</option>
+                    <option value="GB">🇬🇧 อังกฤษ (GB)</option>
+                    <option value="JP">🇯🇵 ญี่ปุ่น (JP)</option>
+                    <option value="SG">🇸🇬 สิงคโปร์ (SG)</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <span class="news-count" id="newsCount">0 รายการ</span>
+            <button class="btn-refresh" id="btnRefresh">🔄 ดึงข้อมูลใหม่</button>
+        </div>
+    </nav>
+
+    <!-- News Grid -->
+    <main class="news-grid" id="newsGrid">
+        <div class="loading-state" id="loadingState">
+            <div class="spinner"></div>
+            <p>กำลังดึงข่าวล่าสุด...</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <span>Auto Content 2026 — Data from Google News RSS</span>
+    </footer>
+
+    <script type="module" src="dashboard.js"></script>
+</body>
+</html>

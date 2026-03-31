@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostAI Studio</title>
+
+    <!-- Tailwind CSS (Play CDN for VIP Development) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts: Mitr (Thai) & Inter (En) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind Configuration (Dark/Crimson Theme) -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Mitr', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        dark: {
+                            900: '#050505',
+                            800: '#0a0a0a',
+                            700: '#141414',
+                            600: '#262626',
+                        },
+                        crimson: {
+                            400: '#f87171',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#450a0a',
+                        }
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom CSS (Glassmorphism & Scrollbar) -->
+    <style>
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at 50% 0%, #1a0505 0%, #050505 70%);
+            color: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .glass-panel {
+            background: rgba(20, 20, 20, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(220, 38, 38, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Custom Scrollbar VIP */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #450a0a;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #991b1b;
+        }
+
+        /* Effects */
+        .crimson-glow {
+            box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
+        }
+
+        .crimson-glow:hover {
+            box-shadow: 0 0 25px rgba(220, 38, 38, 0.5);
+        }
+
+        /* Range Slider Styling */
+        input[type=range] {
+            accent-color: #dc2626;
+        }
+
+        /* Typewriter Cursor */
+        .typewriter-cursor::after {
+            content: '|';
+            animation: blink 1s step-end infinite;
+            color: #dc2626;
+        }
+
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden selection:bg-crimson-800 selection:text-white antialiased">
+
+    <!-- === SIDEBAR NAVIGATION === -->
+    <aside id="sidebar" class="w-64 glass-panel border-r border-crimson-900/50 flex flex-col z-20 shrink-0">
+        <!-- Logo Area -->
+        <div class="p-6 flex items-center gap-3 border-b border-crimson-900/50">
+            <div class="p-2 bg-crimson-900/30 rounded-lg text-crimson-500 animate-pulse-slow">
+                <i data-lucide="ghost"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-wider text-white">GhostAI<span class="text-crimson-500">.</span></h1>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 px-4 py-6 space-y-2 relative">
+            <button onclick="switchView('generator')" id="nav-generator"
+                class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 border border-transparent hover:bg-crimson-900/20 text-gray-200 bg-crimson-900/10 border-crimson-800/50 crimson-glow tab-active">
+                <i data-lucide="wand-2" class="w-5 h-5 text-crimson-400 nav-icon"></i>
+                <span class="font-medium tracking-wide">AI Studio</span>
+            </button>
+            <button onclick="switchView('feed')" id="nav-feed"
+                class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="radio" class="w-5 h-5 text-gray-500 nav-icon transition-colors"></i>
+                <span class="font-medium tracking-wide">The Ghost Radio</span>
+            </button>
+            <button onclick="switchView('settings')" id="nav-settings"
+                class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="settings" class="w-5 h-5 text-gray-500 nav-icon transition-colors"></i>
+                <span class="font-medium tracking-wide">ตั้งค่า (Settings)</span>
+            </button>
+        </nav>
+
+        <!-- Status UI -->
+        <div class="p-4 border-t border-crimson-900/50">
+            <div
+                class="flex items-center justify-between px-4 py-3 bg-dark-900/80 rounded-xl border border-dark-600 shadow-inner">
+                <span class="text-xs font-semibold text-gray-400 tracking-wider">SYSTEM</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-green-500 font-medium tracking-wider">ONLINE</span>
+                    <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- === MAIN CONTENT AREA === -->
+    <main class="flex-1 flex flex-col relative overflow-hidden bg-transparent">
+
+        <!-- TOPBAR -->
+        <header
+            class="h-16 glass-panel border-b border-crimson-900/30 flex items-center justify-between px-8 z-10 shrink-0">
+            <h2 id="page-title" class="text-lg font-semibold text-gray-200 tracking-wide">AI Story Studio
+                (อัญเชิญเรื่องผี)</h2>
+            <div class="flex items-center gap-5">
+                <button class="text-gray-400 hover:text-crimson-400 transition-colors relative group">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span
+                        class="absolute top-0 right-0 w-2 h-2 bg-crimson-500 rounded-full border border-dark-900 group-hover:animate-ping"></span>
+                </button>
+                <div class="h-8 px-3 rounded-lg bg-gradient-to-r from-crimson-800 to-crimson-600 border border-crimson-500 flex items-center justify-center text-xs font-bold text-white shadow-lg tracking-wider cursor-help"
+                    title="VIP Local Client-Side Edition">
+                    VIP LOCAL
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Views Container -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
+
+            <!-- ========================================== -->
+            <!-- 1. VIEW: AI GENERATOR (หน้าหลัก)              -->
+            <!-- ========================================== -->
+            <section id="view-generator" class="view-section max-w-6xl mx-auto space-y-6 animate-fade-in">
+
+                <!-- Notice Banner (Mock Mode Notice) -->
+                <div
+                    class="glass-panel p-4 rounded-xl border-l-4 border-yellow-600 bg-yellow-900/10 flex items-start gap-4 text-yellow-200 shadow-lg">
+                    <div class="p-2 bg-yellow-600/20 rounded-lg shrink-0">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-500"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-sm mb-1 tracking-wide">API Limit Notice (ระบบจำลอง)</h4>
+                        <p class="text-xs text-yellow-400/80 leading-relaxed">
+                            เนื่องจาก Gemini API กำลังติด Limit ในขณะนี้ ระบบจะใช้ Mock Data (เรื่องหลอนจำลอง)
+                            ในการสร้างเรื่องและทดสอบระบบเสียง (Web Speech API) ไปก่อน คุณยังสามารถทดสอบ Flow การทำงานของ
+                            UI และ FX ได้ตามปกติ!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+                    <!-- LEFT COLUMN: Input & Result -->
+                    <div class="xl:col-span-2 flex flex-col gap-6">
+
+                        <!-- 1.1 Input Form Card -->
+                        <div class="glass-panel p-6 rounded-2xl relative overflow-hidden group">
+                            <!-- Background Glow Effect for Card -->
+                            <div
+                                class="absolute -top-24 -right-24 w-48 h-48 bg-crimson-900/20 rounded-full blur-3xl pointer-events-none group-hover:bg-crimson-800/30 transition-colors duration-700">
+                            </div>
+
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-700 pb-3 mb-5">
+                                <h3 class="flex items-center gap-2 font-semibold text-lg text-gray-100 tracking-wide">
+                                    <i data-lucide="file-pen-line" class="w-5 h-5 text-crimson-500"></i>
+                                    ต้นไม้ผี (ระบุพล็อตเรื่อง)
+                                </h3>
+                                
+                                <div class="flex items-center gap-2">
+                                    <label class="text-xs text-gray-400 font-medium tracking-wide">โมเดลนักเขียน:</label>
+                                    <select id="main-ai-model" class="bg-dark-800 border border-dark-600 rounded-lg px-2 py-1 text-sm text-gray-200 focus:outline-none focus:border-crimson-500" onchange="localStorage.setItem('gh_active_ai', this.value); document.getElementById('active-ai').value = this.value;">
+                                        <option value="gemini">Gemini (Google)</option>
+                                        <option value="groq">Groq (Llama 3)</option>
+                                        <option value="openrouter">OpenRouter</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <textarea id="keyword-input" rows="3"
+                                class="w-full bg-dark-900/80 border border-dark-600 rounded-xl p-4 text-gray-200 focus:outline-none focus:border-crimson-600 focus:ring-1 focus:ring-crimson-600 transition-all resize-none placeholder-gray-600 text-sm md:text-base shadow-inner"
+                                placeholder="พิมพ์คีย์เวิร์ด สถานที่ หรือพล็อตเรื่อง... (เช่น โรงเรียนร้าง, ฝนตกหนัก, เสียงเคาะประตู, วิญญาณแค้น)"></textarea>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                                <!-- Gore Slider -->
+                                <div>
+                                    <label
+                                        class="flex justify-between text-xs text-gray-400 mb-2 font-medium tracking-wide">
+                                        <span>ระดับความโหด (Gore Level)</span>
+                                        <span id="gore-val"
+                                            class="font-mono text-crimson-400 bg-crimson-900/30 px-2 py-0.5 rounded">50%</span>
+                                    </label>
+                                    <input type="range" id="gore-slider" min="1" max="100" value="50"
+                                        class="w-full h-1.5 bg-dark-700 rounded-lg appearance-none cursor-pointer hover:bg-dark-600 transition-colors"
+                                        oninput="document.getElementById('gore-val').innerText = this.value + '%'">
+                                </div>
+
+                                <!-- Style Selector -->
+                                <div>
+                                    <label
+                                        class="text-xs text-gray-400 mb-2 block font-medium tracking-wide">สไตล์การเล่าเรื่อง
+                                        (Genre)</label>
+                                    <div class="flex flex-wrap gap-2" id="style-selector">
+                                        <button
+                                            class="style-btn px-3 py-1.5 rounded-lg border border-crimson-600 bg-crimson-600/20 text-crimson-200 text-xs font-medium transition-all shadow-sm">สยองขวัญ</button>
+                                        <button
+                                            class="style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all">ระทึกขวัญ</button>
+                                        <button
+                                            class="style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all">ลึกลับ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 1.2 Result Card -->
+                        <div
+                            class="glass-panel rounded-2xl flex flex-col relative flex-1 min-h-[350px] border-t-2 border-t-crimson-800/50 shadow-[0_-4px_15px_rgba(220,38,38,0.05)]">
+                            <div
+                                class="p-4 border-b border-dark-700 flex items-center justify-between bg-dark-900/50 rounded-t-2xl">
+                                <h3
+                                    class="flex items-center gap-2 font-semibold text-gray-200 tracking-wide text-sm md:text-base">
+                                    <i data-lucide="book-open-text" class="w-5 h-5 text-crimson-500"></i>
+                                    บันทึกอาถรรพ์ (บทบรรยาย)
+                                </h3>
+
+                                <!-- Play Button (Hidden initially) -->
+                                <button id="btn-play-tts"
+                                    class="hidden px-4 py-1.5 bg-crimson-700 hover:bg-crimson-600 text-white rounded-md text-xs font-semibold transition-all flex items-center gap-2 crimson-glow uppercase tracking-wider shadow-lg"
+                                    onclick="playMockTTS()">
+                                    <i data-lucide="play" class="w-3.5 h-3.5" id="tts-icon"></i> <span
+                                        id="tts-text">เริ่มบรรยาย</span>
+                                </button>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div id="story-empty"
+                                class="absolute inset-0 top-[60px] flex flex-col items-center justify-center text-gray-600 pointer-events-none">
+                                <i data-lucide="ghost" class="w-16 h-16 opacity-10 mb-3 block"></i>
+                                <p class="text-sm tracking-wide">... ความตายกำลังรอคอยเรื่องเล่า ...</p>
+                            </div>
+
+                            <!-- Loading State -->
+                            <div id="story-loading"
+                                class="hidden absolute inset-0 top-[60px] flex flex-col items-center justify-center text-crimson-500 z-10 bg-dark-900/90 backdrop-blur-sm rounded-b-2xl">
+                                <i data-lucide="gem" class="w-10 h-10 animate-pulse-slow mb-4"></i>
+                                <div class="flex items-center gap-2 text-sm tracking-widest font-medium animate-pulse">
+                                    <span>AI กำลังถักทอความสยอง</span>
+                                    <span class="flex space-x-1">
+                                        <span class="animate-bounce" style="animation-delay: 0s">.</span>
+                                        <span class="animate-bounce" style="animation-delay: 0.1s">.</span>
+                                        <span class="animate-bounce" style="animation-delay: 0.2s">.</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Content Output -->
+                            <div id="story-content"
+                                class="hidden flex-1 overflow-y-auto p-6 text-gray-300 leading-loose font-light whitespace-pre-line text-base md:text-lg focus:outline-none selection:bg-crimson-900 selection:text-white pb-20 typewriter-cursor">
+                                <!-- story goes here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Settings & Voice FX -->
+                    <div class="space-y-6 flex flex-col">
+
+                        <!-- Main Generate Button -->
+                        <button id="btn-generate"
+                            class="w-full py-4 rounded-xl bg-gradient-to-r from-crimson-800 via-crimson-600 to-crimson-800 text-white font-bold text-lg hover:from-crimson-700 hover:via-crimson-500 hover:to-crimson-700 transition-all flex items-center justify-center gap-2 crimson-glow relative overflow-hidden group shadow-[0_0_20px_rgba(220,38,38,0.4)] hover:shadow-[0_0_30px_rgba(220,38,38,0.6)]"
+                            onclick="generateStory()">
+                            <!-- Shine Effect -->
+                            <div
+                                class="absolute inset-0 w-1/4 h-full bg-white/20 -skew-x-12 -translate-x-full group-hover:translate-x-[400%] transition-transform duration-1000 ease-in-out">
+                            </div>
+
+                            <i data-lucide="flame" class="w-6 h-6 relative z-10 group-hover:animate-pulse"></i>
+                            <span class="relative z-10 tracking-widest text-shadow-sm"
+                                id="btn-generate-text">เริ่มอัญเชิญเรื่องผี</span>
+                        </button>
+
+                        <!-- Voice System Panel -->
+                        <div class="glass-panel rounded-2xl flex flex-col flex-1">
+                            <div class="p-4 border-b border-dark-700 bg-dark-900/50 rounded-t-2xl">
+                                <h3 class="flex items-center gap-2 font-semibold text-gray-200 text-sm tracking-wide">
+                                    <i data-lucide="bot" class="w-4 h-4 text-crimson-500"></i>
+                                    🤖 Gemini TTS
+                                </h3>
+                                <p class="text-[10px] text-gray-500 mt-1 ml-6">· AI Phonetic Fix + RMS Normalized</p>
+                            </div>
+                            <div class="p-3 bg-dark-800/80 border-b border-dark-700">
+                                <button id="btn-random-voice" onclick="randomizeVoice()" class="w-full py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 rounded-lg text-xs font-medium flex justify-center items-center gap-2 transition-colors">
+                                    <i data-lucide="dice-5" class="w-4 h-4"></i> 🎲 สุ่มเสียงอัตโนมัติ
+                                </button>
+                            </div>
+                            <div class="p-3 space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar" id="voice-list">
+                                <!-- JS จะแทรก Voice Options ที่นี่ -->
+                            </div>
+                            </div>
+                        </div>
+
+                        <!-- Audio FX Dashboard -->
+                        <div class="glass-panel rounded-2xl border-t border-t-crimson-900 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 opacity-10 pointer-events-none">
+                                <i data-lucide="audio-lines" class="w-32 h-32 text-crimson-500 -mt-6 -mr-6"></i>
+                            </div>
+
+                            <div class="p-4 border-b border-dark-700 bg-dark-900/50">
+                                <h3 class="flex items-center gap-2 font-semibold text-gray-200 text-sm tracking-wide">
+                                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-crimson-500"></i>
+                                    เวทมนตร์เสียงหลอน (Audio FX)
+                                </h3>
+                            </div>
+
+                            <div class="p-5 space-y-5 relative z-10">
+                                <!-- Toggles -->
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between group">
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-300 block">เสียงก้อง
+                                                (Reverb)</span>
+                                            <span class="text-[10px] text-gray-500">จำลองเสียงในห้องเช่าร้าง /
+                                                วัดป่า</span>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="fx-reverb" class="sr-only peer"
+                                                onchange="updateAudioFX()">
+                                            <div
+                                                class="w-10 h-5 bg-dark-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-crimson-700 border border-dark-600 peer-checked:border-crimson-500 peer-checked:after:bg-white">
+                                            </div>
+                                        </label>
+                                    </div>
+                                    <div class="flex items-center justify-between group">
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-300 block">บิดเบือนวิญญาณ
+                                                (Pitch)</span>
+                                            <span
+                                                class="text-[10px] text-gray-500">ดัดเสียงให้ยืดและมีความถี่ต่ำหลอนๆ</span>
+                                        </div>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" id="fx-pitch" class="sr-only peer"
+                                                onchange="updateAudioFX()">
+                                            <div
+                                                class="w-10 h-5 bg-dark-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-crimson-700 border border-dark-600 peer-checked:border-crimson-500 peer-checked:after:bg-white">
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- EQs -->
+                                <div class="pt-4 border-t border-dark-700/50 space-y-4">
+                                    <div>
+                                        <label
+                                            class="flex justify-between text-[11px] text-gray-400 uppercase tracking-widest mb-2 font-semibold">
+                                            <span>Bass (ความถี่ต่ำ)</span>
+                                            <span id="bass-val">+5dB</span>
+                                        </label>
+                                        <input type="range" id="eq-bass" min="-20" max="20" value="5"
+                                            class="w-full h-1 bg-dark-800 rounded-lg appearance-none cursor-pointer"
+                                            oninput="document.getElementById('bass-val').innerText = (this.value > 0 ? '+'+this.value : this.value) + 'dB'; updateAudioFX();">
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="flex justify-between text-[11px] text-gray-400 uppercase tracking-widest mb-2 font-semibold">
+                                            <span>Main Volume</span>
+                                            <span id="vol-val">80%</span>
+                                        </label>
+                                        <input type="range" id="vol-main" min="0" max="100" value="80"
+                                            class="w-full h-1 bg-dark-800 rounded-lg appearance-none cursor-pointer"
+                                            oninput="document.getElementById('vol-val').innerText = this.value + '%'; updateAudioFX();">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- POST-GENERATION CONTENT (ซ่อนจนกว่าจะเจนเรื่องเสร็จ) -->
+                <!-- ========================================== -->
+                <div id="post-gen-content" class="hidden space-y-6 mt-6 animate-fade-in">
+
+                    <!-- สคริปต์ -->
+                    <div class="glass-panel p-6 rounded-2xl">
+                        <div class="flex justify-between items-center mb-4 border-b border-dark-700 pb-3">
+                            <h3 class="flex items-center gap-2 font-semibold text-lg text-crimson-500 tracking-wide">
+                                <i data-lucide="scroll-text" class="w-5 h-5"></i> สคริปต์
+                            </h3>
+                            <button onclick="copyText('script-display')" class="text-xs bg-dark-800 border border-dark-600 hover:border-crimson-500 hover:text-crimson-400 px-3 py-1.5 rounded-md flex items-center gap-1 transition-all">
+                                <i data-lucide="copy" class="w-3 h-3"></i> copy
+                            </button>
+                        </div>
+                        <div id="script-display" class="text-gray-300 leading-relaxed text-sm whitespace-pre-line max-h-[300px] overflow-y-auto pr-2">
+                        </div>
+                    </div>
+
+                    <!-- YouTube Metadata -->
+                    <div class="glass-panel p-6 rounded-2xl">
+                        <div class="flex items-center gap-2 mb-5 border-b border-dark-700 pb-3">
+                            <h3 class="flex items-center gap-2 font-semibold text-lg text-crimson-500 tracking-wide">
+                                <i data-lucide="tv" class="w-5 h-5"></i> YOUTUBE METADATA
+                            </h3>
+                            <div id="meta-loading" class="hidden">
+                                <i data-lucide="loader-2" class="w-4 h-4 animate-spin text-yellow-500"></i>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <!-- ชื่อคลิป -->
+                            <div class="flex items-start gap-3">
+                                <span class="text-xs text-gray-500 font-semibold w-20 pt-1 shrink-0 tracking-wide">ชื่อคลิป</span>
+                                <div class="flex-1 bg-dark-900/80 rounded-lg p-3 border border-dark-700 text-gray-200 text-sm min-h-[40px]" id="meta-title">
+                                    <span class="text-gray-600 italic">กำลังสร้าง...</span>
+                                </div>
+                                <button onclick="copyText('meta-title')" class="text-xs bg-dark-800 border border-dark-600 hover:border-crimson-500 px-2 py-1.5 rounded-md shrink-0 transition-all">copy</button>
+                            </div>
+                            <!-- คำอธิบาย -->
+                            <div class="flex items-start gap-3">
+                                <span class="text-xs text-gray-500 font-semibold w-20 pt-1 shrink-0 tracking-wide">คำอธิบาย</span>
+                                <div class="flex-1 bg-dark-900/80 rounded-lg p-3 border border-dark-700 text-gray-200 text-sm min-h-[60px] whitespace-pre-line" id="meta-description">
+                                    <span class="text-gray-600 italic">กำลังสร้าง...</span>
+                                </div>
+                                <button onclick="copyText('meta-description')" class="text-xs bg-dark-800 border border-dark-600 hover:border-crimson-500 px-2 py-1.5 rounded-md shrink-0 transition-all">copy</button>
+                            </div>
+                            <!-- Tags -->
+                            <div class="flex items-start gap-3">
+                                <span class="text-xs text-gray-500 font-semibold w-20 pt-1 shrink-0 tracking-wide">TAGS</span>
+                                <div class="flex-1" id="meta-tags-container">
+                                    <div class="flex flex-wrap gap-2" id="meta-tags">
+                                        <span class="text-gray-600 italic text-sm">กำลังสร้าง...</span>
+                                    </div>
+                                </div>
+                                <button onclick="copyText('meta-tags')" class="text-xs bg-dark-800 border border-dark-600 hover:border-crimson-500 px-2 py-1.5 rounded-md shrink-0 transition-all">copy</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- สร้างภาพ + เสียง -->
+                    <button onclick="generateMediaAssets()" id="btn-gen-media"
+                        class="w-full py-4 rounded-xl bg-dark-800 border border-dark-600 hover:border-crimson-600 hover:bg-dark-700 text-gray-200 font-bold text-base tracking-wider transition-all flex items-center justify-center gap-3 shadow-lg group">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-crimson-500 group-hover:animate-pulse"></i>
+                        <span>🎨 สร้างภาพ + เสียง [💀 สุ่ม]</span>
+                    </button>
+
+                    <!-- Media Assets Section (hidden until generated) -->
+                    <div id="media-assets" class="hidden space-y-6 animate-fade-in">
+
+                        <!-- ภาพปกคลิป -->
+                        <div class="glass-panel p-6 rounded-2xl">
+                            <h3 class="flex items-center gap-2 font-semibold text-crimson-500 tracking-wide mb-4 border-b border-dark-700 pb-3">
+                                <i data-lucide="image" class="w-5 h-5"></i> ภาพปกคลิป
+                            </h3>
+                            <div class="relative rounded-xl overflow-hidden bg-dark-900 border border-dark-700 mb-4">
+                                <canvas id="thumbnail-canvas" width="1280" height="720" class="w-full h-auto"></canvas>
+                            </div>
+                            <div class="flex gap-3 justify-end">
+                                <button onclick="exportThumbnail()" class="px-4 py-2 bg-dark-800 border border-dark-600 hover:border-crimson-500 rounded-lg text-sm flex items-center gap-2 transition-all">
+                                    <i data-lucide="download" class="w-3.5 h-3.5"></i> save
+                                </button>
+                                <button onclick="generateThumbnail()" class="px-4 py-2 bg-dark-800 border border-dark-600 hover:border-blue-500 rounded-lg text-sm flex items-center gap-2 transition-all">
+                                    <i data-lucide="refresh-ccw" class="w-3.5 h-3.5 text-blue-400"></i> เจนใหม่
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- เสียงพากย์ + REALTIME FX -->
+                        <div class="glass-panel p-6 rounded-2xl">
+                            <h3 class="flex items-center gap-2 font-semibold text-crimson-500 tracking-wide mb-4 border-b border-dark-700 pb-3">
+                                <i data-lucide="audio-waveform" class="w-5 h-5"></i> เสียงพากย์ + REALTIME FX
+                            </h3>
+
+                            <!-- Player -->
+                            <div class="bg-dark-900/80 rounded-xl p-5 border border-dark-700 mb-4">
+                                <div class="flex items-center gap-4 mb-3">
+                                    <button onclick="playPreviewVoice()" id="btn-preview-play"
+                                        class="w-12 h-12 rounded-full bg-crimson-700 hover:bg-crimson-600 flex items-center justify-center transition-all shadow-lg crimson-glow shrink-0">
+                                        <i data-lucide="play" class="w-5 h-5 text-white" id="preview-play-icon"></i>
+                                    </button>
+                                    <div>
+                                        <div class="flex items-center gap-2 text-sm text-gray-300">
+                                            <span>■</span> <span id="preview-status">หยุดอยู่</span>
+                                        </div>
+                                        <div class="flex gap-2 mt-1.5">
+                                            <span class="text-[10px] bg-crimson-900/30 text-crimson-400 px-2 py-0.5 rounded border border-crimson-900/50 flex items-center gap-1">
+                                                <i data-lucide="music" class="w-2.5 h-2.5"></i> AMBIENT MIX
+                                            </span>
+                                            <span class="text-[10px] bg-blue-900/20 text-blue-400 px-2 py-0.5 rounded border border-blue-900/30 flex items-center gap-1">
+                                                <i data-lucide="disc" class="w-2.5 h-2.5"></i> AMBIENT
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-[11px] text-gray-500 flex items-center gap-1">
+                                    <i data-lucide="lightbulb" class="w-3 h-3 text-yellow-600"></i>
+                                    toggle FX ของเสียงได้ ... ได้ฟังก่อนนี้
+                                </p>
+                            </div>
+
+                            <!-- Export Buttons -->
+                            <div class="grid grid-cols-3 gap-3 mb-3">
+                                <button onclick="handleExportWithFX()"
+                                    class="py-3 bg-crimson-900/30 border border-crimson-800 hover:bg-crimson-800/50 rounded-xl text-sm font-bold text-crimson-300 transition-all flex flex-col items-center gap-1">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    <span>Export with FX (WAV)</span>
+                                </button>
+                                <button onclick="handleExportRaw()"
+                                    class="py-3 bg-dark-800 border border-dark-600 hover:border-gray-500 rounded-xl text-sm font-medium text-gray-400 transition-all flex flex-col items-center gap-1">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    <span>Raw (no FX)</span>
+                                </button>
+                                <button onclick="exportThumbnail()"
+                                    class="py-3 bg-dark-800 border border-dark-600 hover:border-gray-500 rounded-xl text-sm font-medium text-gray-400 transition-all flex flex-col items-center gap-1">
+                                    <i data-lucide="download" class="w-4 h-4"></i>
+                                    <span>ภาพ (.jpg)</span>
+                                </button>
+                            </div>
+                            <div id="export-status" class="text-xs text-gray-500 text-center font-mono">
+                                <span class="flex items-center justify-center gap-1"><i data-lucide="lightbulb" class="w-3 h-3 text-yellow-600"></i> Export with FX จะ bake EQ + Ambient + Master Vol ลงใน WAV</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- ========================================== -->
+            <!-- 2. VIEW: FEED (ข่าวย้อนหลัง)                    -->
+            <!-- ========================================== -->
+            <section id="view-feed" class="view-section max-w-6xl mx-auto hidden animate-fade-in">
+
+                <div
+                    class="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-crimson-900/30 gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-white tracking-widest flex items-center gap-3">
+                            <i data-lucide="radio-tower" class="text-crimson-500 w-8 h-8"></i>
+                            <span
+                                class="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">คลื่นหลอน</span>
+                            <span class="text-crimson-600 font-black">THE GHOST RADIO</span>
+                        </h2>
+                        <p class="text-gray-400 mt-2 text-sm tracking-wide">รวมเรื่องเล่าสยองขวัญ ฟีดตรงจาก YouTube
+                            (ดึงผ่าน RSS)</p>
+                    </div>
+                    <button
+                        class="px-5 py-2.5 bg-dark-800/80 border border-dark-600 hover:border-crimson-600 hover:bg-dark-700 rounded-xl text-sm font-medium text-gray-300 hover:text-white transition-all shadow-md flex items-center gap-2 group"
+                        onclick="fetchYouTubeRSS()">
+                        <i data-lucide="refresh-ccw"
+                            class="w-4 h-4 group-hover:rotate-180 transition-transform duration-500"></i> รีเฟรชคลื่น
+                    </button>
+                </div>
+
+                <div id="feed-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <!-- Loading State initial -->
+                    <div class="col-span-full h-40 flex items-center justify-center text-crimson-600/50">
+                        <i data-lucide="skull" class="w-10 h-10 animate-pulse"></i>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- 3. VIEW: SETTINGS (ตั้งค่าระบบ)                 -->
+            <!-- ========================================== -->
+            <section id="view-settings" class="view-section max-w-3xl mx-auto hidden animate-fade-in">
+                <div class="glass-panel p-8 rounded-2xl shadow-xl relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-dark-900 via-crimson-600 to-dark-900"></div>
+
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-4 border-b border-dark-700">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 bg-dark-800 rounded-lg border border-dark-600 text-gray-300">
+                                <i data-lucide="key" class="w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white tracking-wide">API Configuration</h2>
+                                <p class="text-xs text-gray-500 mt-1">ตั้งค่าและทดสอบการเชื่อมต่อ API ทั้งหมดที่นี่</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 md:mt-0 bg-dark-900/50 p-2 rounded-lg border border-dark-700 w-full md:w-auto">
+                            <label class="text-xs text-crimson-400 font-bold block mb-1">🔥 เลือก AI ที่จะใช้แต่งเรื่อง</label>
+                            <!-- แก้ไข style ของ select ให้มองเห็นชัดเจนในทุกเครื่อง -->
+                            <select id="active-ai-select" class="bg-dark-900 text-gray-200 border border-dark-600 hover:border-crimson-600 rounded-lg p-2 text-sm focus:outline-none focus:ring-1 focus:ring-crimson-500 w-full cursor-pointer transition-colors shadow-inner">
+                                <option value="gemini" class="bg-dark-900 text-gray-200 py-1">Google Gemini</option>
+                                <option value="groq" class="bg-dark-900 text-gray-200 py-1">Groq (Llama 3 ฟรี)</option>
+                                <option value="openrouter" class="bg-dark-900 text-gray-200 py-1">OpenRouter (Gemma ฟรี)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Gemini API Key -->
+                        <div class="bg-dark-900/50 p-5 rounded-xl border border-dark-700">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="flex items-center gap-2 text-sm font-semibold text-gray-200 tracking-wide">
+                                    <i data-lucide="brain-circuit" class="w-4 h-4 text-purple-400"></i> Gemini API Key
+                                </label>
+                                <button onclick="handleApiTest('gemini')" class="text-xs bg-dark-800 border border-dark-600 hover:border-purple-500 hover:text-purple-400 px-3 py-1 rounded-md flex items-center gap-1 transition-all">
+                                    <i data-lucide="search" class="w-3 h-3"></i> ทดสอบ
+                                </button>
+                            </div>
+                            <input type="password" id="api-gemini" class="w-full bg-dark-900 border border-dark-800 rounded-lg p-3 text-gray-200 text-sm font-mono mb-2 focus:outline-none focus:border-purple-500" placeholder="AIzaSy...">
+                            <div id="status-gemini" class="text-xs text-gray-500 mt-1 font-mono">Status: Idle</div>
+                        </div>
+
+                        <!-- Groq API Key -->
+                        <div class="bg-dark-900/50 p-5 rounded-xl border border-dark-700">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="flex items-center gap-2 text-sm font-semibold text-gray-200 tracking-wide">
+                                    <i data-lucide="zap" class="w-4 h-4 text-orange-400"></i> Groq API Key
+                                </label>
+                                <button onclick="handleApiTest('groq')" class="text-xs bg-dark-800 border border-dark-600 hover:border-orange-500 hover:text-orange-400 px-3 py-1 rounded-md flex items-center gap-1 transition-all">
+                                    <i data-lucide="search" class="w-3 h-3"></i> ทดสอบ
+                                </button>
+                            </div>
+                            <input type="password" id="api-groq" class="w-full bg-dark-900 border border-dark-800 rounded-lg p-3 text-gray-200 text-sm font-mono mb-2 focus:outline-none focus:border-orange-500" placeholder="gsk_...">
+                            <div id="status-groq" class="text-xs text-gray-500 mt-1 font-mono">Status: Idle</div>
+                        </div>
+
+                        <!-- OpenRouter API Key -->
+                        <div class="bg-dark-900/50 p-5 rounded-xl border border-dark-700">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="flex items-center gap-2 text-sm font-semibold text-gray-200 tracking-wide">
+                                    <i data-lucide="webhook" class="w-4 h-4 text-blue-400"></i> OpenRouter API Key
+                                </label>
+                                <button onclick="handleApiTest('openrouter')" class="text-xs bg-dark-800 border border-dark-600 hover:border-blue-500 hover:text-blue-400 px-3 py-1 rounded-md flex items-center gap-1 transition-all">
+                                    <i data-lucide="search" class="w-3 h-3"></i> ทดสอบ
+                                </button>
+                            </div>
+                            <input type="password" id="api-openrouter" class="w-full bg-dark-900 border border-dark-800 rounded-lg p-3 text-gray-200 text-sm font-mono mb-2 focus:outline-none focus:border-blue-500" placeholder="sk-or-v1-...">
+                            <div id="status-openrouter" class="text-xs text-gray-500 mt-1 font-mono">Status: Idle</div>
+                        </div>
+
+                        <!-- (RESTORED) TTS API Key -->
+                        <div class="bg-dark-900/50 p-5 rounded-xl border border-dark-700 focus-within:border-crimson-800/50 transition-colors">
+                            <div class="flex justify-between items-center mb-3">
+                                <label class="flex items-center gap-2 text-sm font-semibold text-gray-200 tracking-wide">
+                                    <i data-lucide="cloud-lightning" class="w-4 h-4 text-blue-400"></i> Google Cloud TTS Key
+                                    <span class="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-dark-600 ml-auto mr-2">OPTIONAL</span>
+                                </label>
+                                <button onclick="handleApiTest('tts')" class="text-xs bg-dark-800 border border-dark-600 hover:border-blue-500 hover:text-blue-400 px-3 py-1 rounded-md flex items-center gap-1 transition-all">
+                                    <i data-lucide="search" class="w-3 h-3"></i> ทดสอบ
+                                </button>
+                            </div>
+                            <input type="password" id="api-tts" class="w-full bg-dark-900 border border-dark-800 rounded-lg p-3 text-gray-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all text-sm font-mono placeholder-gray-700" placeholder="AIzaSy...">
+                            <div id="status-tts" class="text-xs text-gray-500 mt-1 font-mono">Status: Idle</div>
+                            <p class="text-[11px] text-gray-500 mt-2 font-light">
+                                ใช้สำหรับระบบเสียงคุณภาพสูง (Phase 4). หากเว้นว่าง เสียงจะจำลองจากเบราว์เซอร์
+                            </p>
+                        </div>
+
+                        <div class="pt-4 flex items-center justify-between border-t border-dark-700 pt-6">
+                            <span class="text-xs text-gray-500 flex items-center gap-1"><i data-lucide="shield-check" class="w-3 h-3"></i> Local Storage Only</span>
+                            <button class="px-8 py-3 bg-white text-dark-900 hover:bg-gray-200 rounded-xl font-bold tracking-widest transition-colors shadow-lg flex items-center gap-2" onclick="saveSettings()">
+                                <i data-lucide="save" class="w-4 h-4"></i> SAVE KEYS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- === EXTERNAL MODULES (PHASE 2-5) === -->
+    <script src="src/lib/story-gen.js"></script>
+    <script src="src/lib/tts-engine.js"></script>
+    <script src="src/lib/audio-processor.js"></script>
+    <script src="src/lib/spirit-box.js"></script>
+    <script src="src/lib/ghost-overlay.js"></script>
+    <script src="src/lib/visualizer.js"></script>
+
+    <!-- เสียงบรรยากาศและ JUMPSCARE (ซ่อนไว้) -->
+    <audio id="bg-audio" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" loop></audio>
+
+    <!-- === JAVASCRIPT === -->
+    <script>
+        // Init Icons
+        lucide.createIcons();
+
+        // ------------------------------------------------------------------
+        // [PHASE 1] SPA ROUTING & UI INTERACTIONS
+        // ------------------------------------------------------------------
+        function switchView(viewId) {
+            // Hide all sections
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+
+            // Reset nav styles
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('tab-active', 'text-gray-200', 'bg-crimson-900/10', 'border-crimson-800/50', 'crimson-glow');
+                el.classList.add('text-gray-400', 'border-transparent');
+
+                const icon = el.querySelector('.nav-icon');
+                icon.classList.remove('text-crimson-400');
+                icon.classList.add('text-gray-500');
+            });
+
+            // Show target section
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+
+            // Update active nav style
+            const navBtn = document.getElementById(`nav-${viewId}`);
+            navBtn.classList.add('tab-active', 'text-gray-200', 'bg-crimson-900/10', 'border-crimson-800/50', 'crimson-glow');
+            navBtn.classList.remove('text-gray-400', 'border-transparent');
+            const targetIcon = navBtn.querySelector('.nav-icon');
+            targetIcon.classList.remove('text-gray-500');
+            targetIcon.classList.add('text-crimson-400');
+
+            // Update title
+            const titles = {
+                'generator': 'AI Story Studio (อัญเชิญเรื่องผี)',
+                'feed': 'The Ghost Radio Feed (คลื่นหลอนย้อนหลัง)',
+                'settings': 'System Configuration (ตั้งค่าระบบ)'
+            };
+            document.getElementById('page-title').innerText = titles[viewId];
+
+            // Auto fetch feed if empty
+            if (viewId === 'feed') {
+                const container = document.getElementById('feed-container');
+                if (container.children.length <= 1) { // 1 is the loading skull
+                    fetchYouTubeRSS();
+                }
+            }
+        }
+
+        // Setup Style Selector Interactions
+        document.querySelectorAll('.style-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.style-btn').forEach(b => {
+                    b.className = 'style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all';
+                });
+                e.target.className = 'style-btn px-3 py-1.5 rounded-lg border border-crimson-600 bg-crimson-600/20 text-crimson-200 text-xs font-medium transition-all shadow-sm';
+            });
+        });
+
+        // ------------------------------------------------------------------
+        // [INITIALIZE UI: Voices & Models]
+        // ------------------------------------------------------------------
+        function initVoiceList() {
+            const listContainer = document.getElementById('voice-list');
+            listContainer.innerHTML = GEMINI_VOICES.map((v, i) => `
+                <div class="voice-opt p-2 border ${i===0 ? 'border-crimson-600 bg-crimson-900/20' : 'border-dark-600 bg-dark-800/50'} rounded-lg cursor-pointer flex items-center gap-3 transition-colors group" data-voice="${v.id}">
+                    <div class="w-8 h-8 rounded justify-center items-center flex shrink-0 text-lg ${i===0 ? '' : 'grayscale'}">
+                        ${v.gender === 'M' ? '♂' : '♀'}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium ${i===0 ? 'text-gray-100' : 'text-gray-400'} text-xs truncate">${v.name} (${v.id})</p>
+                        <p class="text-[10px] ${i===0 ? 'text-crimson-400' : 'text-gray-500'} font-light truncate">${v.desc}</p>
+                    </div>
+                    <button class="sample-btn p-1.5 rounded bg-dark-800 hover:bg-crimson-600 text-gray-400 hover:text-white transition-colors" onclick="event.stopPropagation(); playSampleVoice('${v.id}')" title="ฟังเสียงตัวอย่าง">
+                        <i data-lucide="play" class="w-3 h-3 sample-icon"></i>
+                    </button>
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-crimson-500 ${i===0 ? '' : 'hidden'}"></i>
+                </div>
+            `).join('');
+
+            // Setup Voice Selector Interactions
+            document.querySelectorAll('.voice-opt').forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    document.querySelectorAll('.voice-opt').forEach(o => {
+                        o.className = 'voice-opt p-2 border border-dark-600 hover:border-crimson-900 bg-dark-800/50 rounded-lg cursor-pointer flex items-center gap-3 transition-colors';
+                        o.querySelector('p:nth-child(1)').classList.replace('text-gray-100', 'text-gray-400');
+                        o.querySelector('p:nth-child(2)').classList.replace('text-crimson-400', 'text-gray-500');
+                        o.querySelector('.lucide-check-circle-2')?.classList.add('hidden');
+                        o.querySelector('div.w-8').classList.add('grayscale');
+                    });
+
+                    const target = e.currentTarget;
+                    target.className = 'voice-opt p-2 border border-crimson-600 bg-crimson-900/20 rounded-lg cursor-pointer flex items-center gap-3 transition-colors';
+                    target.querySelector('p:nth-child(1)').classList.replace('text-gray-400', 'text-gray-100');
+                    target.querySelector('p:nth-child(2)').classList.replace('text-gray-500', 'text-crimson-400');
+                    target.querySelector('.lucide-check-circle-2')?.classList.remove('hidden');
+                    target.querySelector('div.w-8').classList.remove('grayscale');
+                });
+            });
+            lucide.createIcons();
+        }
+
+        function randomizeVoice() {
+            const opts = document.querySelectorAll('.voice-opt');
+            const randomIdx = Math.floor(Math.random() * opts.length);
+            opts[randomIdx].click();
+            opts[randomIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Initialize voice list on load
+        window.addEventListener('DOMContentLoaded', () => {
+            if(typeof GEMINI_VOICES !== 'undefined') initVoiceList();
+            
+            // Sync active AI model to dropdown
+            const activeAI = localStorage.getItem('gh_active_ai') || 'gemini';
+            const modelSelect = document.getElementById('main-ai-model');
+            if(modelSelect) modelSelect.value = activeAI;
+        });
+
+        async function handleApiTest(provider) {
+            const val = document.getElementById(`api-${provider}`).value;
+            const statusBox = document.getElementById(`status-${provider}`);
+            
+            statusBox.innerHTML = '<span class="text-yellow-500">⏳ กำลังตรวจสอบกับโลกวิญญาณ...</span>';
+            const res = await testAIConnection(provider, val);
+            
+            if (res.success) {
+                statusBox.innerHTML = `<span class="text-green-500 font-bold">${res.msg}</span>`;
+            } else {
+                statusBox.innerHTML = `<span class="text-red-500">${res.msg}</span>`;
+            }
+        }
+
+        function saveSettings() {
+            // Save to localStorage
+            localStorage.setItem('gh_api_gemini', document.getElementById('api-gemini').value);
+            localStorage.setItem('gh_api_groq', document.getElementById('api-groq').value);
+            localStorage.setItem('gh_api_openrouter', document.getElementById('api-openrouter').value);
+            localStorage.setItem('gh_api_tts', document.getElementById('api-tts').value); // <--- Restored
+            localStorage.setItem('gh_active_ai', document.getElementById('active-ai-select').value);
+
+            const btn = document.querySelector('#view-settings button');
+            const ogHtml = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="check" class="w-4 h-4"></i> SAVED`;
+            btn.classList.add('bg-green-500', 'text-white');
+            btn.classList.remove('bg-white', 'text-dark-900');
+            lucide.createIcons();
+
+            setTimeout(() => {
+                btn.innerHTML = ogHtml;
+                btn.classList.remove('bg-green-500', 'text-white');
+                btn.classList.add('bg-white', 'text-dark-900');
+                lucide.createIcons();
+            }, 2000);
+        }
+
+        // Load settings on boot and initialize modules
+        window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('api-gemini').value = localStorage.getItem('gh_api_gemini') || '';
+            document.getElementById('api-groq').value = localStorage.getItem('gh_api_groq') || '';
+            document.getElementById('api-openrouter').value = localStorage.getItem('gh_api_openrouter') || '';
+            document.getElementById('api-tts').value = localStorage.getItem('gh_api_tts') || ''; // <--- Restored
+            document.getElementById('active-ai-select').value = localStorage.getItem('gh_active_ai') || 'gemini';
+            
+            // Initialize Visual effects
+            if(typeof initGhostOverlay === 'function') initGhostOverlay();
+        });
+
+        // Initialize Audio context on first click
+        document.body.addEventListener('click', () => {
+            // เล่นเพลงแบ็คกราวด์หลอนๆ
+            const bgAudio = document.getElementById('bg-audio');
+            if (bgAudio && bgAudio.paused) {
+                bgAudio.volume = 0.3;
+                bgAudio.play().catch(e => console.log('BGM Play blocked'));
+            }
+
+            if (typeof audioCtx !== 'undefined' && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+                if(typeof initAudioEngine === 'function') {
+                    initAudioEngine();
+                    if(typeof initVisualizer === 'function') initVisualizer(analyser);
+                }
+            }
+        }, { once: true });
+
+        // ------------------------------------------------------------------
+        // [PHASE 2] YOUTUBE RSS FEED SYSTEM
+        // ------------------------------------------------------------------
+        async function fetchYouTubeRSS() {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = `
+                <div class="col-span-full py-20 flex flex-col items-center justify-center text-crimson-500/80">
+                    <i data-lucide="radar" class="w-12 h-12 animate-spin-slow mb-4"></i>
+                    <p class="tracking-widest font-semibold text-sm animate-pulse">กำลังปรับจูนคลื่นวิญญาณ...</p>
+                </div>
+            `;
+            lucide.createIcons();
+
+            try {
+                // Ghost Radio Channel ID: UCM246zZ4qMNmDw8JOPjFquw
+                const chId = 'UCM246zZ4qMNmDw8JOPjFquw';
+                const rssUrl = encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?channel_id=${chId}`);
+                // Use rss2json proxy to bypass CORS and get JSON
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
+                const data = await res.json();
+
+                if (data.status === 'ok' && data.items.length > 0) {
+                    renderFeed(data.items);
+                } else {
+                    throw new Error('No items or API limits reached');
+                }
+            } catch (err) {
+                console.warn("[GhostAI] Fetch RSS Failed, loading Mock Data", err);
+
+                // --- FALLBACK MOCK DATA ---
+                setTimeout(() => {
+                    const mockData = [
+                        { title: 'ห้องเช่าหมายเลข 404 | คุณ A', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600&auto=format&fit=crop', pubDate: new Date().toISOString() },
+                        { title: 'ทางเปลี่ยวสายนั้น | คุณ B', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1626245137107-7756e1cd4ece?q=80&w=600&auto=format&fit=crop', pubDate: new Date(Date.now() - 86400000).toISOString() },
+                        { title: 'วิญญาณตามติด | คุณ C', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=600&auto=format&fit=crop', pubDate: new Date(Date.now() - 172800000).toISOString() },
+                        { title: 'เสียงเคาะจากตู้ | คุณ D', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1505635552518-3448ff116af3?q=80&w=600&auto=format&fit=crop', pubDate: new Date(Date.now() - 259200000).toISOString() }
+                    ];
+                    renderFeed(mockData);
+                }, 1000);
+            }
+        }
+
+        function renderFeed(items) {
+            const container = document.getElementById('feed-container');
+            container.innerHTML = items.map(item => {
+                const date = new Date(item.pubDate).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+                // Clean YouTube title usually has "| The Ghost Radio ..."
+                const cleanTitle = item.title.split('| The Ghost')[0].trim();
+
+                return `
+                <a href="${item.link}" target="_blank" class="glass-panel rounded-2xl overflow-hidden hover:-translate-y-2 transition-transform duration-300 group border border-dark-600 hover:border-crimson-600 block shadow-lg flex flex-col h-full bg-dark-900/80 relative">
+                    <div class="absolute inset-0 bg-crimson-900/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"></div>
+                    <div class="aspect-video relative overflow-hidden bg-dark-900 shrink-0">
+                        <img src="${item.thumbnail}" alt="thumb" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 filter grayscale-[50%] group-hover:grayscale-0">
+                        <div class="absolute inset-0 bg-gradient-to-t from-dark-950 via-transparent to-transparent"></div>
+                        <div class="absolute top-3 right-3 bg-dark-900/80 backdrop-blur border border-dark-600 text-gray-300 text-[10px] px-2 py-1 rounded flex items-center gap-1 z-20">
+                            <i data-lucide="youtube" class="w-3 h-3 text-red-500"></i> YouTube
+                        </div>
+                    </div>
+                    <div class="p-5 flex-1 flex flex-col justify-between relative z-20">
+                        <h3 class="font-bold text-gray-200 leading-snug mb-3 group-hover:text-crimson-400 transition-colors line-clamp-2 text-sm tracking-wide">${cleanTitle}</h3>
+                        <div class="flex items-center justify-between text-xs font-medium">
+                            <span class="text-crimson-600/80 bg-crimson-900/20 px-2 py-1 rounded border border-crimson-900/30">เรื่องเล่า</span>
+                            <span class="text-gray-500 flex items-center gap-1.5"><i data-lucide="calendar" class="w-3.5 h-3.5"></i> ${date}</span>
+                        </div>
+                    </div>
+                </a>
+            `}).join('');
+            lucide.createIcons();
+        }
+
+        // ------------------------------------------------------------------
+        // [PHASE 3] AI STORY GENERATION (MOCK GEMINI API)
+        // ------------------------------------------------------------------
+        let typeWriterTimeout;
+
+        async function generateStory() {
+            const btn = document.getElementById('btn-generate');
+            const keyword = document.getElementById('keyword-input').value.trim() || 'บ้านร้างท้ายซอย';
+            const apiKey = document.getElementById('api-gemini').value;
+
+            // UI State -> Loading
+            const btnOriginalHtml = btn.innerHTML;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-6 h-6 animate-spin text-white"></i><span class="tracking-widest text-shadow-sm">กำลังติดต่อโลกวิญญาณ...</span>';
+            btn.classList.add('pointer-events-none', 'opacity-80');
+
+            document.getElementById('story-empty').classList.add('hidden');
+            document.getElementById('story-content').classList.add('hidden', 'typewriter-cursor');
+            document.getElementById('btn-play-tts').classList.add('hidden');
+            document.getElementById('story-loading').classList.remove('hidden');
+            lucide.createIcons();
+
+            // Clear previous typing if running
+            if (typeWriterTimeout) clearTimeout(typeWriterTimeout);
+
+            // Stop playing voice if any
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            updateTTSBtn(false);
+
+            try {
+                // Get selected genre
+                let genre = 'สยองขวัญ';
+                document.querySelectorAll('.style-btn').forEach(b => {
+                    if (b.classList.contains('text-crimson-200')) genre = b.innerText;
+                });
+                const gore = document.getElementById('gore-slider').value;
+
+                // Call external generator (it handles fallback automatically)
+                let storyText = await generateGhostStory(keyword, gore, genre);
+                
+                // Clean up JUMP_SCARE markers for UI typing, we will trigger them during speech instead
+                const cleanStory = storyText.replace(/\[JUMP_SCARE\]/g, '');
+
+                document.getElementById('story-loading').classList.add('hidden');
+                const contentDiv = document.getElementById('story-content');
+                contentDiv.classList.remove('hidden');
+
+                contentDiv.innerHTML = '';
+                let index = 0;
+
+                function type() {
+                    if (index < cleanStory.length) {
+                        const char = cleanStory.charAt(index);
+                        contentDiv.innerHTML += char === '\n' ? '<br>' : char;
+                        index++;
+                        contentDiv.scrollTop = contentDiv.scrollHeight;
+                        typeWriterTimeout = setTimeout(type, 2); 
+                    } else {
+                        contentDiv.classList.remove('typewriter-cursor');
+                        document.getElementById('btn-play-tts').classList.remove('hidden');
+
+                        btn.innerHTML = btnOriginalHtml;
+                        btn.classList.remove('pointer-events-none', 'opacity-80');
+                        document.getElementById('btn-generate-text').innerText = 'อัญเชิญเรื่องใหม่';
+                        lucide.createIcons();
+
+                        // === POST-GEN: แสดง Script + Metadata + Media ===
+                        currentStoryText = cleanStory;
+                        document.getElementById('script-display').innerText = cleanStory;
+                        document.getElementById('post-gen-content').classList.remove('hidden');
+                        document.getElementById('media-assets').classList.add('hidden'); // ซ่อน media ไว้ก่อน
+                        lucide.createIcons();
+
+                        // Auto-generate YouTube Metadata
+                        generateMetadata(cleanStory);
+                    }
+                }
+                type();
+
+            } catch (err) {
+                console.error("Story generation failed:", err);
+                document.getElementById('story-loading').classList.add('hidden');
+                btn.innerHTML = btnOriginalHtml;
+                btn.classList.remove('pointer-events-none', 'opacity-80');
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // [PHASE 4 & 5] TEXT-TO-SPEECH & WEB AUDIO API FX MOCK
+        // ------------------------------------------------------------------
+
+        let currentUtterance;
+        let isPlaying = false;
+
+        function updateTTSBtn(playing) {
+            isPlaying = playing;
+            const btnText = document.getElementById('tts-text');
+            const icon = document.getElementById('tts-icon');
+
+            if (playing) {
+                btnText.innerText = "หยุดบรรยาย";
+                icon.setAttribute('data-lucide', 'square');
+                document.getElementById('btn-play-tts').classList.replace('bg-crimson-700', 'bg-dark-600');
+                document.getElementById('btn-play-tts').classList.remove('crimson-glow');
+            } else {
+                btnText.innerText = "เริ่มบรรยาย";
+                icon.setAttribute('data-lucide', 'play');
+                document.getElementById('btn-play-tts').classList.replace('bg-dark-600', 'bg-crimson-700');
+                document.getElementById('btn-play-tts').classList.add('crimson-glow');
+            }
+            lucide.createIcons();
+        }
+
+        async function playMockTTS() {
+            // Toggle Stop
+            if (isPlaying) {
+                if (window.speechSynthesis) window.speechSynthesis.cancel();
+                updateTTSBtn(false);
+                return;
+            }
+
+            // Get text
+            let text = document.getElementById('story-content').innerText;
+            if (!text || text.length < 5) return;
+
+            updateTTSBtn(true);
+            
+            // Web Audio Engine Path
+            if (typeof synthesizeCloudTTS !== 'undefined') {
+                // Determine selected voice
+                let voiceId = 'sharon';
+                document.querySelectorAll('.voice-opt').forEach(opt => {
+                    if (opt.querySelector('.text-gray-100')) {
+                        if (opt.innerText.includes('Aurus')) voiceId = 'aurus';
+                    }
+                });
+                
+                // Jump Scare fx hook randomly
+                setTimeout(() => { if(Math.random() > 0.5 && typeof triggerJumpScare !== 'undefined') triggerJumpScare(); }, 5000);
+
+                const buffer = await synthesizeCloudTTS(text, voiceId);
+                
+                if (buffer) {
+                    const useReverb = document.getElementById('fx-reverb').checked;
+                    const isPitch = document.getElementById('fx-pitch').checked;
+                    const pitchVal = isPitch ? 0.8 : 1.0;
+                    
+                    const source = await playGhostAudio(buffer, useReverb, pitchVal);
+                    if(source) {
+                        source.onended = () => updateTTSBtn(false);
+                        return;
+                    }
+                }
+            }
+
+            // Fallback back to Speech API
+            if (window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+                currentUtterance = new SpeechSynthesisUtterance(text);
+                currentUtterance.lang = 'th-TH';
+                
+                const isPitch = document.getElementById('fx-pitch').checked;
+                const mainVol = document.getElementById('vol-main').value;
+                currentUtterance.pitch = isPitch ? 0.3 : 0.9;
+                currentUtterance.rate = isPitch ? 0.75 : 0.95;
+                currentUtterance.volume = mainVol / 100;
+
+                currentUtterance.onend = () => { updateTTSBtn(false) };
+                currentUtterance.onerror = () => { updateTTSBtn(false) };
+                window.speechSynthesis.speak(currentUtterance);
+            } else {
+                updateTTSBtn(false);
+            }
+        }
+
+        function updateAudioFX() {
+            const mainVol = document.getElementById('vol-main').value;
+            // Native Web Audio master gain control
+            if (typeof masterGain !== 'undefined') {
+                masterGain.gain.setValueAtTime(mainVol / 100, audioCtx.currentTime);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // [PHASE 6] POST-GENERATION: METADATA + MEDIA ASSETS
+        // ------------------------------------------------------------------
+
+        let currentStoryText = ''; // เก็บ script ล่าสุดไว้ใช้ export
+
+        // อัพเดต generateStory ให้แสดง post-gen content
+        const _originalGenerateStory = generateStory;
+
+        // Override generateStory function (เพิ่มส่วนหลังเจนเรื่องเสร็จ)
+        // We hook into the typing completion instead
+
+        // Helper: Copy text from element
+        function copyText(elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const text = el.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                // Flash feedback
+                const orig = el.style.border;
+                el.style.border = '1px solid #22c55e';
+                setTimeout(() => { el.style.border = orig; }, 800);
+            });
+        }
+
+        // สร้าง YouTube Metadata จาก Story
+        async function generateMetadata(storyText) {
+            const metaLoading = document.getElementById('meta-loading');
+            metaLoading?.classList.remove('hidden');
+
+            const prompt = `จากเรื่องผีนี้ ให้สร้าง YouTube Metadata ภาษาไทย:
+เรื่อง: "${storyText.substring(0, 500)}"
+
+ตอบในรูปแบบ JSON เท่านั้น (ไม่ต้องมี markdown):
+{"title": "ชื่อคลิป ไม่เกิน 60 ตัวอักษร น่าคลิก", "description": "คำอธิบายน่าสนใจ 2-3 บรรทัด พร้อม emoji", "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8"]}`;
+
+            try {
+                const provider = localStorage.getItem('gh_active_ai') || 'gemini';
+                let jsonText = '';
+
+                if (provider === 'gemini') {
+                    const apiKey = localStorage.getItem('gh_api_gemini');
+                    if (!apiKey) throw new Error('No Gemini key');
+                    const res = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7 } })
+                    });
+                    const data = await res.json();
+                    jsonText = data.candidates[0].content.parts[0].text.trim();
+                } else if (provider === 'groq') {
+                    const apiKey = localStorage.getItem('gh_api_groq');
+                    if (!apiKey) throw new Error('No Groq key');
+                    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: prompt }], temperature: 0.7 })
+                    });
+                    const data = await res.json();
+                    jsonText = data.choices[0].message.content.trim();
+                } else {
+                    const apiKey = localStorage.getItem('gh_api_openrouter');
+                    if (!apiKey) throw new Error('No OpenRouter key');
+                    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`, 'HTTP-Referer': window.location.href, 'X-Title': 'GhostAI Studio' },
+                        body: JSON.stringify({ model: 'openrouter/auto', messages: [{ role: 'user', content: prompt }], temperature: 0.7 })
+                    });
+                    const data = await res.json();
+                    jsonText = data.choices[0].message.content.trim();
+                }
+
+                // Parse JSON (อาจมี ``` wrapper)
+                jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+                const meta = JSON.parse(jsonText);
+
+                document.getElementById('meta-title').innerText = meta.title || 'ไม่สามารถสร้างได้';
+                document.getElementById('meta-description').innerText = meta.description || '';
+
+                const tagsContainer = document.getElementById('meta-tags');
+                tagsContainer.innerHTML = (meta.tags || []).map(tag =>
+                    `<span class="px-3 py-1 bg-dark-800 border border-dark-600 rounded-full text-xs text-gray-300">${tag}</span>`
+                ).join('');
+
+            } catch (err) {
+                console.warn('[GhostAI] Metadata generation failed:', err);
+                // Fallback metadata
+                const keyword = document.getElementById('keyword-input').value.trim() || 'เรื่องผี';
+                document.getElementById('meta-title').innerText = `เสียงสะท้อนจาก${keyword} 😰💀`;
+                document.getElementById('meta-description').innerText = `เจอเสียงแปลกๆ ดังมาจาก${keyword} เรื่องจริง หรือ เสียงหลอน? 💀 มาฟังเรื่องผีสด\nหลอนจากช่อง YouTube Horror Channel ไทยกัน! 👻 #เรื่องผี #สยองขวัญ #บ่อร้าง`;
+                const defaultTags = ['เรื่องผี', 'สยองขวัญ', 'ผีไทย', 'บ่อร้าง', 'เสียงสะท้อน', 'หลอน', 'น่ากลัว', 'เรื่องจริงผี', 'ช่องผี', 'Horror Thai'];
+                document.getElementById('meta-tags').innerHTML = defaultTags.map(tag =>
+                    `<span class="px-3 py-1 bg-dark-800 border border-dark-600 rounded-full text-xs text-gray-300">${tag}</span>`
+                ).join('');
+            }
+
+            metaLoading?.classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        // สร้าง Thumbnail (Canvas-based)
+        const HORROR_BG_IMAGES = [
+            'https://images.unsplash.com/photo-1509248961085-879c62bf4c6d?w=1280&h=720&fit=crop',
+            'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1280&h=720&fit=crop',
+            'https://images.unsplash.com/photo-1626245137107-7756e1cd4ece?w=1280&h=720&fit=crop',
+            'https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?w=1280&h=720&fit=crop',
+            'https://images.unsplash.com/photo-1505635552518-3448ff116af3?w=1280&h=720&fit=crop',
+            'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=1280&h=720&fit=crop',
+            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1280&h=720&fit=crop'
+        ];
+
+        async function generateThumbnail() {
+            const canvas = document.getElementById('thumbnail-canvas');
+            const ctx = canvas.getContext('2d');
+            const title = document.getElementById('meta-title')?.innerText || 'GhostAI Story';
+
+            // สุ่มภาพพื้นหลัง
+            const bgUrl = HORROR_BG_IMAGES[Math.floor(Math.random() * HORROR_BG_IMAGES.length)];
+
+            try {
+                // Load background image
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = bgUrl;
+                });
+
+                // Draw background
+                ctx.drawImage(img, 0, 0, 1280, 720);
+
+                // Dark overlay
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+                ctx.fillRect(0, 0, 1280, 720);
+
+                // Red vignette
+                const gradient = ctx.createRadialGradient(640, 360, 200, 640, 360, 700);
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                gradient.addColorStop(1, 'rgba(139, 0, 0, 0.4)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 1280, 720);
+
+                // Title text (with red glow)
+                ctx.shadowColor = '#dc2626';
+                ctx.shadowBlur = 30;
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 56px Mitr, sans-serif';
+                ctx.textAlign = 'center';
+
+                // Word wrap title
+                const words = title.split(' ');
+                let lines = [];
+                let currentLine = '';
+                for (const word of words) {
+                    const test = currentLine ? currentLine + ' ' + word : word;
+                    if (ctx.measureText(test).width > 1000) {
+                        lines.push(currentLine);
+                        currentLine = word;
+                    } else {
+                        currentLine = test;
+                    }
+                }
+                lines.push(currentLine);
+
+                const lineHeight = 70;
+                const startY = 360 - ((lines.length - 1) * lineHeight) / 2;
+                lines.forEach((line, i) => {
+                    ctx.fillText(line, 640, startY + i * lineHeight);
+                });
+
+                // Bottom branding
+                ctx.shadowBlur = 0;
+                ctx.font = '24px Mitr, sans-serif';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillText('👻 GhostAI Studio', 640, 680);
+
+            } catch (err) {
+                console.warn('[GhostAI] Thumbnail bg load failed, using solid:', err);
+                // Fallback: solid dark red gradient
+                const grad = ctx.createLinearGradient(0, 0, 1280, 720);
+                grad.addColorStop(0, '#0a0000');
+                grad.addColorStop(0.5, '#1a0505');
+                grad.addColorStop(1, '#0a0000');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 1280, 720);
+
+                ctx.shadowColor = '#dc2626';
+                ctx.shadowBlur = 40;
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 56px Mitr, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(title.substring(0, 30), 640, 380);
+
+                ctx.shadowBlur = 0;
+                ctx.font = '24px Mitr, sans-serif';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.fillText('👻 GhostAI Studio', 640, 680);
+            }
+        }
+
+        function exportThumbnail() {
+            const canvas = document.getElementById('thumbnail-canvas');
+            canvas.toBlob(blob => {
+                if (blob) {
+                    const timestamp = new Date().toISOString().slice(0, 10);
+                    downloadBlob(blob, `ghostai-thumbnail-${timestamp}.jpg`);
+                }
+            }, 'image/jpeg', 0.95);
+        }
+
+        // สร้างทั้ง Thumbnail + Show media section
+        async function generateMediaAssets() {
+            const btn = document.getElementById('btn-gen-media');
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-5 h-5 animate-spin text-crimson-500"></i> <span>กำลังสร้าง...</span>';
+            lucide.createIcons();
+
+            await generateThumbnail();
+
+            document.getElementById('media-assets').classList.remove('hidden');
+            btn.innerHTML = '<i data-lucide="sparkles" class="w-5 h-5 text-crimson-500"></i> <span>🎨 สร้างภาพ + เสียง [💀 สุ่ม]</span>';
+            lucide.createIcons();
+
+            // Scroll ลงไปหา media section
+            document.getElementById('media-assets').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Preview Voice (เล่น/หยุด ในส่วน post-gen)
+        let previewPlaying = false;
+        let previewSource = null;
+        const voiceCache = {};
+
+        async function playSampleVoice(voiceId) {
+            // หยุดเสียงที่เล่นอยู่
+            if (previewSource) { try { previewSource.stop(); } catch(e){} }
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+
+            // เปลี่ยนไอคอนเป็นโหลด
+            const optDiv = document.querySelector(`[data-voice="${voiceId}"]`);
+            const icon = optDiv.querySelector('.sample-icon');
+            if(icon) {
+                icon.setAttribute('data-lucide', 'loader-2');
+                icon.classList.add('animate-spin');
+                lucide.createIcons();
+            }
+
+            const text = `สวัสดียามดึก ฉันคือ ${voiceId} พร้อมจะเล่าเรื่องแล้วหรือยัง?`;
+            let buffer = voiceCache[voiceId];
+            
+            if (!buffer) {
+                buffer = await synthesizeCloudTTS(text, voiceId);
+                if (buffer) voiceCache[voiceId] = buffer;
+            }
+
+            if(icon) {
+                icon.setAttribute('data-lucide', 'play');
+                icon.classList.remove('animate-spin');
+                lucide.createIcons();
+            }
+
+            if (buffer) {
+                const useReverb = document.getElementById('fx-reverb')?.checked ?? false;
+                previewSource = await playGhostAudio(buffer, useReverb, 1.0);
+            }
+        }
+
+        async function playPreviewVoice() {
+            const statusEl = document.getElementById('preview-status');
+            const iconEl = document.getElementById('preview-play-icon');
+
+            if (previewPlaying) {
+                // Stop
+                if (window.speechSynthesis) window.speechSynthesis.cancel();
+                if (previewSource) { try { previewSource.stop(); } catch(e){} }
+                previewPlaying = false;
+                statusEl.innerText = 'หยุดอยู่';
+                iconEl.setAttribute('data-lucide', 'play');
+                lucide.createIcons();
+                return;
+            }
+
+            if (!currentStoryText) return;
+            previewPlaying = true;
+            statusEl.innerText = 'กำลังเล่น...';
+            iconEl.setAttribute('data-lucide', 'square');
+            lucide.createIcons();
+
+            // ดึง Voice ID จาก UI
+            let voiceId = 'Charon';
+            document.querySelectorAll('.voice-opt').forEach(opt => {
+                if (!opt.querySelector('.lucide-check-circle-2:not(.hidden)')) return;
+                voiceId = opt.getAttribute('data-voice') || 'Charon';
+            });
+
+            const buffer = await synthesizeCloudTTS(currentStoryText, voiceId);
+            if (buffer) {
+                const useReverb = document.getElementById('fx-reverb')?.checked ?? true;
+                const isPitch = document.getElementById('fx-pitch')?.checked ?? false;
+                const pitchVal = isPitch ? 0.8 : 1.0;
+
+                previewSource = await playGhostAudio(buffer, useReverb, pitchVal);
+                if (previewSource) {
+                    previewSource.onended = () => {
+                        previewPlaying = false;
+                        statusEl.innerText = 'หยุดอยู่';
+                        iconEl.setAttribute('data-lucide', 'play');
+                        lucide.createIcons();
+                    };
+                    return;
+                }
+            }
+
+            // Fallback Web Speech
+            if (window.speechSynthesis) {
+                const u = new SpeechSynthesisUtterance(currentStoryText);
+                u.lang = 'th-TH';
+                const isPitch = document.getElementById('fx-pitch')?.checked ?? false;
+                u.pitch = isPitch ? 0.3 : 0.9;
+                u.rate = isPitch ? 0.75 : 0.95;
+                u.onend = () => {
+                    previewPlaying = false;
+                    statusEl.innerText = 'หยุดอยู่';
+                    iconEl.setAttribute('data-lucide', 'play');
+                    lucide.createIcons();
+                };
+                window.speechSynthesis.speak(u);
+            }
+        }
+
+        // Export handlers
+        function handleExportWithFX() {
+            if (!currentStoryText) { alert('กรุณาสร้างเรื่องก่อน'); return; }
+            exportAudioWithFX(currentStoryText);
+        }
+
+        function handleExportRaw() {
+            if (!currentStoryText) { alert('กรุณาสร้างเรื่องก่อน'); return; }
+            exportAudioRaw(currentStoryText);
+        }
+
+    </script>
+</body>
+
+</html>

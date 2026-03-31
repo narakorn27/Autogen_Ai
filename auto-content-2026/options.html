@@ -31,48 +31,114 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Gemini API Key <span class="badge required">จำเป็นสำหรับสร้างภาพ</span></label>
-                    <input type="password" id="geminiApiKey" placeholder="AIzaSy...">
+                    <label>Gemini API Key <span class="badge required">จำเป็น</span></label>
+                    <div class="input-with-button">
+                        <input type="password" id="geminiApiKey" placeholder="AIzaSy...">
+                        <button class="btn-secondary btn-test" id="testGemini">🔍 ทดสอบ</button>
+                    </div>
+                    <small id="geminiStatus" class="status-msg">ฟรีที่ Google AI Studio — แนะนำ: gemini-2.0-flash</small>
                 </div>
+                
                 <div class="form-group mt-15">
                     <label>Groq API Key <span class="badge optional">ตัวเลือก</span></label>
-                    <input type="password" id="groqApiKey" placeholder="gsk_...">
-                    <small>รวดเร็วมาก ฟรี Text generation (Llama 3, Mixtral)</small>
+                    <div class="input-with-button">
+                        <input type="password" id="groqApiKey" placeholder="gsk_...">
+                        <button class="btn-secondary btn-test" id="testGroq">🔍 ทดสอบ</button>
+                    </div>
+                    <small id="groqStatus" class="status-msg">รวดเร็วมาก ฟรี Text generation (Llama 3, Mixtral)</small>
                 </div>
+                
                 <div class="form-group mt-15">
                     <label>OpenRouter API Key <span class="badge optional">ตัวเลือก</span></label>
-                    <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-...">
-                    <small>ศูนย์รวมโมเดล AI กว่า 100+ ตัว</small>
+                    <div class="input-with-button">
+                        <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-...">
+                        <button class="btn-secondary btn-test" id="testOpenRouter">🔍 ทดสอบ</button>
+                    </div>
+                    <small id="openrouterStatus" class="status-msg">ศูนย์รวมโมเดล AI กว่า 100+ ตัว</small>
                 </div>
-            </section>
 
-            <!-- ท่อน Data API -->
-            <section class="settings-card mt-20">
-                <h2>📡 Data API (สืบค้นเนื้อหา)</h2>
-                <div class="form-group">
+                <div class="form-group mt-15" style="border-top: 1px dashed var(--border); padding-top: 15px;">
+                    <label>NewsAPI.org Key <span class="badge required">ข่าวนอก/สาระ</span></label>
+                    <div class="input-with-button">
+                        <input type="password" id="newsApiKey" placeholder="ตัวเลขผสมภาษาอังกฤษ...">
+                        <button class="btn-secondary btn-test" id="testNewsApi">🔍 ทดสอบ</button>
+                    </div>
+                    <small id="newsApiStatus" class="status-msg">รับคีย์ฟรีที่ newsapi.org (ช่วยให้ข่าวนอกมีรูปภาพจริง)</small>
+                </div>
+                
+                <div class="form-group mt-15" style="border-top: 1px dashed var(--border); padding-top: 15px;">
+                    <label>Hugging Face Token <span class="badge optional">ตัวเลือก (สำหรับวาดรูป)</span></label>
+                    <div class="input-with-button">
+                        <input type="password" id="hfApiKey" placeholder="hf_...">
+                        <button class="btn-secondary btn-test" id="testHf">🔍 ทดสอบ</button>
+                    </div>
+                    <small id="hfStatus" class="status-msg">สมัครฟรีที่ huggingface.co ใช้สำหรับวาดรูปฟรี (โมเดล FLUX.1)</small>
+                </div>
                     <label>TMDB API Key <span class="badge optional">ตัวเลือกเสริม</span></label>
-                    <input type="password" id="tmdbApiKey" placeholder="v3 auth key สำหรับดึงข้อมูลหนัง">
-                    <small>ใช้สำหรับ Content รีวิวหนัง หากตึงข่าวอย่างเดียวไม่ต้องใส่ก็ได้ครับ</small>
+                    <div class="input-with-button">
+                        <input type="password" id="tmdbApiKey" placeholder="v3 auth key สำหรับดึงข้อมูลหนัง">
+                        <button class="btn-secondary btn-test" id="testTmdb">🔍 ทดสอบ</button>
+                    </div>
+                    <small id="tmdbStatus" class="status-msg">ใช้สำหรับ Content รีวิวหนังผ่านเมนู Trends</small>
                 </div>
             </section>
 
-            <!-- ท่อน Facebook Pages Placeholder -->
+            <!-- Auto Bot Settings -->
             <section class="settings-card mt-20">
-                <div class="flex-between">
+                <h2>🤖 Auto Bot (ตั้งค่าบอทอัตโนมัติ)</h2>
+                
+                <div class="form-group mb-15">
+                    <label>
+                        <input type="checkbox" id="autoBotEnabled" style="margin-right: 8px; transform: scale(1.2);">
+                        เปิดใช้งานบอทหาข่าวและเจนคอนเทนต์อัตโนมัติ
+                    </label>
+                    <small class="text-secondary" style="display: block; margin-top: 5px; margin-left: 25px;">(บอทจะทำงานอยู่เบื้องหลัง ดึงข่าว สร้างภาพ แล้วเซฟลงแท็บ Queue ให้คุณแบบ Drafted หรือโพสต์เลย)</small>
+                </div>
+
+                <div class="field-row">
+                    <div class="form-group w-full">
+                        <label>ความถี่ในการทำงาน</label>
+                        <select id="autoBotInterval" class="select-lg">
+                            <option value="60">ทุกๆ 1 ชั่วโมง</option>
+                            <option value="180">ทุกๆ 3 ชั่วโมง</option>
+                            <option value="360">ทุกๆ 6 ชั่วโมง</option>
+                            <option value="720">ทุกๆ 12 ชั่วโมง</option>
+                            <option value="1440">วันละ 1 ครั้ง (24 ชม.)</option>
+                        </select>
+                    </div>
+                    <div class="form-group w-full">
+                        <label>จัดการโพสต์อย่างไร?</label>
+                        <select id="autoBotAction" class="select-lg">
+                            <option value="draft">💾 เซฟลงแบบร่าง (Queue) รอคุณมากดโพสต์</option>
+                            <option value="post">🚀 โพสต์ลง Facebook ทันที (Auto Post)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Facebook Pages -->
+            <section class="settings-card mt-20">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
                     <h2>📄 Facebook Pages (จัดการเพจ)</h2>
                     <button class="btn-secondary" id="btnAddPage">+ เพิ่มเพจใหม่</button>
                 </div>
-                <p class="summary-text mt-10">
-                    ระบบเพิ่ม/ลบเพจด้วย Long-lived Token จะถูกออกแบบและเขียนรวมใน Phase 8<br>
-                    ระบบรองรับการเชื่อมต่อและสั่งการได้ 100+ เพจพร้อมกัน
-                </p>
+                <p class="mt-15 text-secondary">คุณสามารถเพิ่มเพจได้ไม่จำกัดจำนวน โดยใช้ Long-lived Page Access Token เพื่อควบคุมระบบทั้งหมด</p>
+                <div id="pagesList" class="mt-15"></div>
             </section>
+
         </main>
 
         <footer>
             <div class="footer-actions">
-                <span class="save-status" id="saveStatus"></span>
-                <button class="btn-primary" id="btnSave">💾 บันทึกการตั้งค่าระบบ</button>
+                <div class="utility-btns">
+                    <button class="btn-secondary-sm" id="btnExport">📥 ส่งออก (Export)</button>
+                    <button class="btn-secondary-sm" id="btnImport">📤 นำเข้า (Import)</button>
+                    <input type="file" id="importFile" style="display:none;" accept=".json">
+                </div>
+                <div>
+                    <span class="save-status" id="saveStatus"></span>
+                    <button class="btn-primary" id="btnSave">💾 บันทึกการตั้งค่าระบบ</button>
+                </div>
             </div>
         </footer>
     </div>

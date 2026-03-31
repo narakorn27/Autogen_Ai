@@ -16,10 +16,20 @@
     "*://api.themoviedb.org/*",
     "*://graph.facebook.com/*",
     "*://generativelanguage.googleapis.com/*",
-    "*://*.reddit.com/*"
+    "*://*.reddit.com/*",
+    "*://*.huggingface.co/*",
+    "*://news.google.com/*",
+    "*://*.groq.com/*",
+    "*://openrouter.ai/*",
+    "*://newsapi.org/*",
+    "*://api.rss2json.com/*",
+    "*://*.thairath.co.th/*",
+    "*://*.matichon.co.th/*",
+    "*://*.khaosod.co.th/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
