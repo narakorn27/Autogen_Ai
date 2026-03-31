@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GhostAI Studio</title>
 
-    <!-- Tailwind CSS (Play CDN for VIP Development) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (Local Build) -->
+    <link href="public/output.css" rel="stylesheet">
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -18,114 +18,12 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Mitr:wght@300;400;500;600&display=swap"
         rel="stylesheet">
-
-    <!-- Tailwind Configuration (Dark/Crimson Theme) -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Mitr', 'Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        dark: {
-                            900: '#050505',
-                            800: '#0a0a0a',
-                            700: '#141414',
-                            600: '#262626',
-                        },
-                        crimson: {
-                            400: '#f87171',
-                            500: '#ef4444',
-                            600: '#dc2626',
-                            700: '#b91c1c',
-                            800: '#991b1b',
-                            900: '#450a0a',
-                        }
-                    },
-                    animation: {
-                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'fade-in': 'fadeIn 0.5s ease-out',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-
-    <!-- Custom CSS (Glassmorphism & Scrollbar) -->
-    <style>
-        body {
-            background-color: #050505;
-            background-image: radial-gradient(circle at 50% 0%, #1a0505 0%, #050505 70%);
-            color: #f5f5f5;
-            min-height: 100vh;
-        }
-
-        .glass-panel {
-            background: rgba(20, 20, 20, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(220, 38, 38, 0.1);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        /* Custom Scrollbar VIP */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #0a0a0a;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #450a0a;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #991b1b;
-        }
-
-        /* Effects */
-        .crimson-glow {
-            box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
-        }
-
-        .crimson-glow:hover {
-            box-shadow: 0 0 25px rgba(220, 38, 38, 0.5);
-        }
-
-        /* Range Slider Styling */
-        input[type=range] {
-            accent-color: #dc2626;
-        }
-
-        /* Typewriter Cursor */
-        .typewriter-cursor::after {
-            content: '|';
-            animation: blink 1s step-end infinite;
-            color: #dc2626;
-        }
-
-        @keyframes blink {
-            50% {
-                opacity: 0;
-            }
-        }
-    </style>
 </head>
 
-<body class="flex h-screen overflow-hidden selection:bg-crimson-800 selection:text-white antialiased">
+<body class="flex min-h-screen overflow-x-hidden selection:bg-crimson-800 selection:text-white antialiased">
 
     <!-- === SIDEBAR NAVIGATION === -->
-    <aside id="sidebar" class="w-64 glass-panel border-r border-crimson-900/50 flex flex-col z-20 shrink-0">
+    <aside id="sidebar" class="w-64 h-screen sticky top-0 glass-panel border-r border-crimson-900/50 flex flex-col z-20 shrink-0">
         <!-- Logo Area -->
         <div class="p-6 flex items-center gap-3 border-b border-crimson-900/50">
             <div class="p-2 bg-crimson-900/30 rounded-lg text-crimson-500 animate-pulse-slow">
@@ -167,11 +65,11 @@
     </aside>
 
     <!-- === MAIN CONTENT AREA === -->
-    <main class="flex-1 flex flex-col relative overflow-hidden bg-transparent">
+    <main class="flex-1 flex flex-col min-w-0 relative bg-transparent">
 
         <!-- TOPBAR -->
         <header
-            class="h-16 glass-panel border-b border-crimson-900/30 flex items-center justify-between px-8 z-10 shrink-0">
+            class="sticky top-0 h-16 glass-panel border-b border-crimson-900/30 flex items-center justify-between px-8 z-10 shrink-0">
             <h2 id="page-title" class="text-lg font-semibold text-gray-200 tracking-wide">AI Story Studio
                 (อัญเชิญเรื่องผี)</h2>
             <div class="flex items-center gap-5">
@@ -188,12 +86,12 @@
         </header>
 
         <!-- Dynamic Views Container -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-8 relative scroll-smooth">
+        <div id="main-scroll" class="flex-1 flex flex-col items-stretch justify-start p-4 md:p-8 relative scroll-smooth">
 
             <!-- ========================================== -->
             <!-- 1. VIEW: AI GENERATOR (หน้าหลัก)              -->
             <!-- ========================================== -->
-            <section id="view-generator" class="view-section max-w-6xl mx-auto space-y-6 animate-fade-in">
+            <section id="view-generator" class="view-section w-full max-w-6xl mx-auto self-start space-y-6 animate-fade-in">
 
                 <!-- Notice Banner (Mock Mode Notice) -->
                 <div
@@ -587,13 +485,13 @@
             <!-- ========================================== -->
             <!-- 2. VIEW: FEED (ข่าวย้อนหลัง)                    -->
             <!-- ========================================== -->
-            <section id="view-feed" class="view-section max-w-6xl mx-auto hidden animate-fade-in">
+            <section id="view-feed" class="view-section w-full max-w-6xl mx-auto self-start hidden animate-fade-in pb-8">
 
                 <div
                     class="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-crimson-900/30 gap-4">
                     <div>
                         <h2 class="text-3xl font-bold text-white tracking-widest flex items-center gap-3">
-                            <i data-lucide="radio-tower" class="text-crimson-500 w-8 h-8"></i>
+                            <i data-lucide="radio" class="text-crimson-500 w-8 h-8"></i>
                             <span
                                 class="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">คลื่นหลอน</span>
                             <span class="text-crimson-600 font-black">THE GHOST RADIO</span>
@@ -620,7 +518,7 @@
             <!-- ========================================== -->
             <!-- 3. VIEW: SETTINGS (ตั้งค่าระบบ)                 -->
             <!-- ========================================== -->
-            <section id="view-settings" class="view-section max-w-3xl mx-auto hidden animate-fade-in">
+            <section id="view-settings" class="view-section w-full max-w-3xl mx-auto self-start hidden animate-fade-in">
                 <div class="glass-panel p-8 rounded-2xl shadow-xl relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-dark-900 via-crimson-600 to-dark-900"></div>
 
@@ -727,8 +625,7 @@
     <script src="src/lib/ghost-overlay.js"></script>
     <script src="src/lib/visualizer.js"></script>
 
-    <!-- เสียงบรรยากาศและ JUMPSCARE (ซ่อนไว้) -->
-    <audio id="bg-audio" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3" loop></audio>
+    <!-- เสียงพื้นหลังถูกปิดการใช้งานแล้ว -->
 
     <!-- === JAVASCRIPT === -->
     <script>
@@ -739,6 +636,9 @@
         // [PHASE 1] SPA ROUTING & UI INTERACTIONS
         // ------------------------------------------------------------------
         function switchView(viewId) {
+            const mainScroll = document.getElementById('main-scroll');
+            const targetView = document.getElementById(`view-${viewId}`);
+
             // Hide all sections
             document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
 
@@ -753,7 +653,7 @@
             });
 
             // Show target section
-            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            targetView.classList.remove('hidden');
 
             // Update active nav style
             const navBtn = document.getElementById(`nav-${viewId}`);
@@ -770,6 +670,13 @@
                 'settings': 'System Configuration (ตั้งค่าระบบ)'
             };
             document.getElementById('page-title').innerText = titles[viewId];
+
+            if (mainScroll) mainScroll.classList.remove('scroll-smooth');
+            window.scrollTo({ top: 0, behavior: 'auto' });
+            requestAnimationFrame(() => {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+                mainScroll?.classList.add('scroll-smooth');
+            });
 
             // Auto fetch feed if empty
             if (viewId === 'feed') {
@@ -796,7 +703,7 @@
         function initVoiceList() {
             const listContainer = document.getElementById('voice-list');
             listContainer.innerHTML = GEMINI_VOICES.map((v, i) => `
-                <div class="voice-opt p-2 border ${i===0 ? 'border-crimson-600 bg-crimson-900/20' : 'border-dark-600 bg-dark-800/50'} rounded-lg cursor-pointer flex items-center gap-3 transition-colors group" data-voice="${v.id}">
+                <div class="voice-opt p-2 border ${i===0 ? 'border-crimson-600 bg-crimson-900/20' : 'border-dark-600 bg-dark-800/50'} rounded-lg cursor-pointer flex items-center gap-3 transition-colors group" data-voice="${v.id}" data-selected="${i===0 ? 'true' : 'false'}">
                     <div class="w-8 h-8 rounded justify-center items-center flex shrink-0 text-lg ${i===0 ? '' : 'grayscale'}">
                         ${v.gender === 'M' ? '♂' : '♀'}
                     </div>
@@ -815,6 +722,7 @@
             document.querySelectorAll('.voice-opt').forEach(opt => {
                 opt.addEventListener('click', (e) => {
                     document.querySelectorAll('.voice-opt').forEach(o => {
+                        o.dataset.selected = 'false';
                         o.className = 'voice-opt p-2 border border-dark-600 hover:border-crimson-900 bg-dark-800/50 rounded-lg cursor-pointer flex items-center gap-3 transition-colors';
                         o.querySelector('p:nth-child(1)').classList.replace('text-gray-100', 'text-gray-400');
                         o.querySelector('p:nth-child(2)').classList.replace('text-crimson-400', 'text-gray-500');
@@ -823,11 +731,13 @@
                     });
 
                     const target = e.currentTarget;
+                    target.dataset.selected = 'true';
                     target.className = 'voice-opt p-2 border border-crimson-600 bg-crimson-900/20 rounded-lg cursor-pointer flex items-center gap-3 transition-colors';
                     target.querySelector('p:nth-child(1)').classList.replace('text-gray-400', 'text-gray-100');
                     target.querySelector('p:nth-child(2)').classList.replace('text-gray-500', 'text-crimson-400');
                     target.querySelector('.lucide-check-circle-2')?.classList.remove('hidden');
                     target.querySelector('div.w-8').classList.remove('grayscale');
+                    updateMediaButtonLabel();
                 });
             });
             lucide.createIcons();
@@ -840,9 +750,63 @@
             opts[randomIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
+        function getSelectedVoiceId() {
+            return document.querySelector('.voice-opt[data-selected="true"]')?.getAttribute('data-voice') || 'Charon';
+        }
+
+        function updateMediaButtonLabel() {
+            const btn = document.getElementById('btn-gen-media');
+            if (!btn) return;
+
+            const voiceId = getSelectedVoiceId();
+            btn.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5 text-crimson-500 group-hover:animate-pulse"></i> <span>🎨 สร้างภาพ + เสียง [${voiceId}]</span>`;
+            lucide.createIcons();
+        }
+
+        function getNarrationProfile() {
+            const gore = Number(document.getElementById('gore-slider')?.value || 50);
+            let genre = 'สยองขวัญ';
+            document.querySelectorAll('.style-btn').forEach(btn => {
+                if (btn.classList.contains('text-crimson-200')) genre = btn.innerText.trim();
+            });
+
+            const profile = {
+                useReverb: true,
+                pitchRate: 0.94,
+                speechPitch: 0.75,
+                speechRate: 0.9
+            };
+
+            if (genre === 'ระทึกขวัญ') {
+                profile.useReverb = false;
+                profile.pitchRate = 0.98;
+                profile.speechPitch = 0.9;
+                profile.speechRate = 1.0;
+            } else if (genre === 'ลึกลับ') {
+                profile.useReverb = true;
+                profile.pitchRate = 0.9;
+                profile.speechPitch = 0.65;
+                profile.speechRate = 0.86;
+            }
+
+            if (gore >= 70) {
+                profile.useReverb = true;
+                profile.pitchRate = Math.min(profile.pitchRate, 0.88);
+                profile.speechPitch = Math.min(profile.speechPitch, 0.55);
+                profile.speechRate = Math.min(profile.speechRate, 0.82);
+            } else if (gore <= 30) {
+                profile.pitchRate = Math.max(profile.pitchRate, 0.97);
+                profile.speechPitch = Math.max(profile.speechPitch, 0.88);
+                profile.speechRate = Math.max(profile.speechRate, 0.98);
+            }
+
+            return profile;
+        }
+
         // Initialize voice list on load
         window.addEventListener('DOMContentLoaded', () => {
             if(typeof GEMINI_VOICES !== 'undefined') initVoiceList();
+            updateMediaButtonLabel();
             
             // Sync active AI model to dropdown
             const activeAI = localStorage.getItem('gh_active_ai') || 'gemini';
@@ -899,15 +863,8 @@
             if(typeof initGhostOverlay === 'function') initGhostOverlay();
         });
 
-        // Initialize Audio context on first click
+        // Initialize Audio context on first click (ไม่เล่น BGM แล้ว)
         document.body.addEventListener('click', () => {
-            // เล่นเพลงแบ็คกราวด์หลอนๆ
-            const bgAudio = document.getElementById('bg-audio');
-            if (bgAudio && bgAudio.paused) {
-                bgAudio.volume = 0.3;
-                bgAudio.play().catch(e => console.log('BGM Play blocked'));
-            }
-
             if (typeof audioCtx !== 'undefined' && audioCtx.state === 'suspended') {
                 audioCtx.resume();
                 if(typeof initAudioEngine === 'function') {
@@ -920,6 +877,21 @@
         // ------------------------------------------------------------------
         // [PHASE 2] YOUTUBE RSS FEED SYSTEM
         // ------------------------------------------------------------------
+        function parseYouTubeFeedXml(xmlText) {
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(xmlText, 'text/xml');
+            const entries = Array.from(xml.querySelectorAll('entry'));
+
+            return entries.map(entry => {
+                const title = entry.querySelector('title')?.textContent?.trim() || 'Untitled';
+                const link = entry.querySelector('link')?.getAttribute('href') || 'https://youtube.com';
+                const pubDate = entry.querySelector('published')?.textContent || new Date().toISOString();
+                const mediaThumb = entry.querySelector('media\\:thumbnail, thumbnail');
+                const thumbnail = mediaThumb?.getAttribute('url') || '';
+                return { title, link, pubDate, thumbnail };
+            }).filter(item => item.link);
+        }
+
         async function fetchYouTubeRSS() {
             const container = document.getElementById('feed-container');
             container.innerHTML = `
@@ -930,19 +902,42 @@
             `;
             lucide.createIcons();
 
-            try {
-                // Ghost Radio Channel ID: UCM246zZ4qMNmDw8JOPjFquw
-                const chId = 'UCM246zZ4qMNmDw8JOPjFquw';
-                const rssUrl = encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?channel_id=${chId}`);
-                // Use rss2json proxy to bypass CORS and get JSON
-                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${rssUrl}`);
-                const data = await res.json();
+            if (window.location.protocol === 'file:') {
+                console.warn('[GhostAI] Feed fetch skipped on file:// origin because remote proxies are blocked by browser CORS policy');
+                const mockData = [
+                    { title: 'ห้องข้างหมายเลข 404 | คุณ A', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=600&auto=format&fit=crop', pubDate: new Date().toISOString() },
+                    { title: 'ทางเปลี่ยวคืนนั้น | คุณ B', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1626245137107-7756e1cd4ece?q=80&w=600&auto=format&fit=crop', pubDate: new Date(Date.now() - 86400000).toISOString() },
+                    { title: 'วิญญาณตามติด | คุณ C', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?q=80&w=600&auto=format&fit=crop', pubDate: new Date(Date.now() - 172800000).toISOString() },
+                    { title: 'เสียงเคาะจากตู้ | คุณ D', link: 'https://youtube.com', thumbnail: 'https://images.unsplash.com/photo-1505635552518-3448ff116af3?q=80&w=600&auto=format&fit=crop', pubDate: new Date(Date.now() - 259200000).toISOString() }
+                ];
+                renderFeed(mockData);
+                return;
+            }
 
-                if (data.status === 'ok' && data.items.length > 0) {
-                    renderFeed(data.items);
-                } else {
-                    throw new Error('No items or API limits reached');
+            try {
+                const chId = 'UCM246zZ4qMNmDw8JOPjFquw';
+                const rssUrl = `https://www.youtube.com/feeds/videos.xml?channel_id=${chId}`;
+                const proxies = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`
+                ];
+
+                for (const proxyUrl of proxies) {
+                    try {
+                        const res = await fetch(proxyUrl);
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                        const xmlText = await res.text();
+                        const items = parseYouTubeFeedXml(xmlText);
+                        if (items.length) {
+                            renderFeed(items);
+                            return;
+                        }
+                    } catch (proxyErr) {
+                        console.warn('[GhostAI] RSS proxy failed:', proxyUrl, proxyErr);
+                    }
                 }
+
+                throw new Error('All RSS proxies failed');
             } catch (err) {
                 console.warn("[GhostAI] Fetch RSS Failed, loading Mock Data", err);
 
@@ -973,7 +968,7 @@
                         <img src="${item.thumbnail}" alt="thumb" loading="lazy" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 filter grayscale-[50%] group-hover:grayscale-0">
                         <div class="absolute inset-0 bg-gradient-to-t from-dark-950 via-transparent to-transparent"></div>
                         <div class="absolute top-3 right-3 bg-dark-900/80 backdrop-blur border border-dark-600 text-gray-300 text-[10px] px-2 py-1 rounded flex items-center gap-1 z-20">
-                            <i data-lucide="youtube" class="w-3 h-3 text-red-500"></i> YouTube
+                            <i data-lucide="play" class="w-3 h-3 text-red-500"></i> YouTube
                         </div>
                     </div>
                     <div class="p-5 flex-1 flex flex-col justify-between relative z-20">
@@ -986,6 +981,7 @@
                 </a>
             `}).join('');
             lucide.createIcons();
+            requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
         }
 
         // ------------------------------------------------------------------
@@ -1116,13 +1112,8 @@
             
             // Web Audio Engine Path
             if (typeof synthesizeCloudTTS !== 'undefined') {
-                // Determine selected voice
-                let voiceId = 'sharon';
-                document.querySelectorAll('.voice-opt').forEach(opt => {
-                    if (opt.querySelector('.text-gray-100')) {
-                        if (opt.innerText.includes('Aurus')) voiceId = 'aurus';
-                    }
-                });
+                // Determine selected voice from UI
+                const voiceId = getSelectedVoiceId();
                 
                 // Jump Scare fx hook randomly
                 setTimeout(() => { if(Math.random() > 0.5 && typeof triggerJumpScare !== 'undefined') triggerJumpScare(); }, 5000);
@@ -1130,9 +1121,10 @@
                 const buffer = await synthesizeCloudTTS(text, voiceId);
                 
                 if (buffer) {
-                    const useReverb = document.getElementById('fx-reverb').checked;
+                    const profile = getNarrationProfile();
+                    const useReverb = document.getElementById('fx-reverb').checked || profile.useReverb;
                     const isPitch = document.getElementById('fx-pitch').checked;
-                    const pitchVal = isPitch ? 0.8 : 1.0;
+                    const pitchVal = isPitch ? Math.min(profile.pitchRate, 0.8) : profile.pitchRate;
                     
                     const source = await playGhostAudio(buffer, useReverb, pitchVal);
                     if(source) {
@@ -1148,10 +1140,11 @@
                 currentUtterance = new SpeechSynthesisUtterance(text);
                 currentUtterance.lang = 'th-TH';
                 
+                const profile = getNarrationProfile();
                 const isPitch = document.getElementById('fx-pitch').checked;
                 const mainVol = document.getElementById('vol-main').value;
-                currentUtterance.pitch = isPitch ? 0.3 : 0.9;
-                currentUtterance.rate = isPitch ? 0.75 : 0.95;
+                currentUtterance.pitch = isPitch ? Math.min(profile.speechPitch, 0.5) : profile.speechPitch;
+                currentUtterance.rate = isPitch ? Math.min(profile.speechRate, 0.8) : profile.speechRate;
                 currentUtterance.volume = mainVol / 100;
 
                 currentUtterance.onend = () => { updateTTSBtn(false) };
@@ -1271,13 +1264,11 @@
 
         // สร้าง Thumbnail (Canvas-based)
         const HORROR_BG_IMAGES = [
-            'https://images.unsplash.com/photo-1509248961085-879c62bf4c6d?w=1280&h=720&fit=crop',
-            'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1280&h=720&fit=crop',
-            'https://images.unsplash.com/photo-1626245137107-7756e1cd4ece?w=1280&h=720&fit=crop',
-            'https://images.unsplash.com/photo-1605806616949-1e87b487cb2a?w=1280&h=720&fit=crop',
-            'https://images.unsplash.com/photo-1505635552518-3448ff116af3?w=1280&h=720&fit=crop',
-            'https://images.unsplash.com/photo-1478760329108-5c3ed9d495a0?w=1280&h=720&fit=crop',
-            'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1280&h=720&fit=crop'
+            'https://picsum.photos/1280/720?grayscale&blur=2&random=1',
+            'https://picsum.photos/1280/720?grayscale&blur=2&random=2',
+            'https://picsum.photos/1280/720?grayscale&blur=2&random=3',
+            'https://picsum.photos/1280/720?grayscale&blur=2&random=4',
+            'https://picsum.photos/1280/720?grayscale&blur=2&random=5'
         ];
 
         async function generateThumbnail() {
@@ -1406,33 +1397,62 @@
             if (previewSource) { try { previewSource.stop(); } catch(e){} }
             if (window.speechSynthesis) window.speechSynthesis.cancel();
 
-            // เปลี่ยนไอคอนเป็นโหลด
             const optDiv = document.querySelector(`[data-voice="${voiceId}"]`);
-            const icon = optDiv.querySelector('.sample-icon');
-            if(icon) {
-                icon.setAttribute('data-lucide', 'loader-2');
-                icon.classList.add('animate-spin');
+            const btn = optDiv?.querySelector('.sample-btn');
+            
+            // เปลี่ยนไอคอนเป็นโหลดวงกลมหมุนๆ
+            if (btn) {
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 sample-icon animate-spin"></i>';
                 lucide.createIcons();
             }
 
-            const text = `สวัสดียามดึก ฉันคือ ${voiceId} พร้อมจะเล่าเรื่องแล้วหรือยัง?`;
+            const text = `คืนนั้นไม่มีใคร กล้าผ่านบ้านหลังนั้นอีก`;
             let buffer = voiceCache[voiceId];
             
-            if (!buffer) {
-                buffer = await synthesizeCloudTTS(text, voiceId);
-                if (buffer) voiceCache[voiceId] = buffer;
+            try {
+                if (!buffer) {
+                    buffer = await synthesizeCloudTTS(text, voiceId);
+                    if (buffer) voiceCache[voiceId] = buffer;
+                }
+            } catch (err) {
+                console.warn('[GhostAI] TTS Sample Error:', err);
+                buffer = null;
             }
 
-            if(icon) {
-                icon.setAttribute('data-lucide', 'play');
-                icon.classList.remove('animate-spin');
+            // เปลี่ยนไอคอนกลับมาเป็น Play เหมือนเดิม
+            if (btn) {
+                btn.innerHTML = '<i data-lucide="play" class="w-3 h-3 sample-icon"></i>';
                 lucide.createIcons();
             }
 
             if (buffer) {
+                // เล่นเสียงผ่าน Web Audio API
                 const useReverb = document.getElementById('fx-reverb')?.checked ?? false;
                 previewSource = await playGhostAudio(buffer, useReverb, 1.0);
+            } else if (window.speechSynthesis) {
+                // [Fallback] หาก API บั๊กหรือไม่มีคีย์ ให้ใช้เสียงเบราว์เซอร์แทน
+                const u = new SpeechSynthesisUtterance(text);
+                u.lang = 'th-TH';
+                u.pitch = 0.9;
+                u.rate = 0.95;
+                window.speechSynthesis.speak(u);
             }
+        }
+
+        function getPreviewSnippet(text, maxLength = 320) {
+            const cleaned = (text || '').replace(/\[JUMP_SCARE\]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (cleaned.length <= maxLength) return cleaned;
+
+            const candidate = cleaned.slice(0, maxLength);
+            const sentenceBreak = Math.max(
+                candidate.lastIndexOf('.'),
+                candidate.lastIndexOf('!'),
+                candidate.lastIndexOf('?'),
+                candidate.lastIndexOf('\n')
+            );
+
+            if (sentenceBreak > 120) return candidate.slice(0, sentenceBreak + 1).trim();
+            return `${candidate.trim()}...`;
         }
 
         async function playPreviewVoice() {
@@ -1457,17 +1477,20 @@
             lucide.createIcons();
 
             // ดึง Voice ID จาก UI
-            let voiceId = 'Charon';
-            document.querySelectorAll('.voice-opt').forEach(opt => {
-                if (!opt.querySelector('.lucide-check-circle-2:not(.hidden)')) return;
-                voiceId = opt.getAttribute('data-voice') || 'Charon';
-            });
+            const voiceId = getSelectedVoiceId();
 
-            const buffer = await synthesizeCloudTTS(currentStoryText, voiceId);
+            const previewText = getPreviewSnippet(currentStoryText);
+            const previewCacheKey = `${voiceId}::${previewText}`;
+            let buffer = voiceCache[previewCacheKey];
+            if (!buffer) {
+                buffer = await synthesizeCloudTTS(previewText, voiceId);
+                if (buffer) voiceCache[previewCacheKey] = buffer;
+            }
             if (buffer) {
-                const useReverb = document.getElementById('fx-reverb')?.checked ?? true;
+                const profile = getNarrationProfile();
+                const useReverb = document.getElementById('fx-reverb')?.checked || profile.useReverb;
                 const isPitch = document.getElementById('fx-pitch')?.checked ?? false;
-                const pitchVal = isPitch ? 0.8 : 1.0;
+                const pitchVal = isPitch ? Math.min(profile.pitchRate, 0.8) : profile.pitchRate;
 
                 previewSource = await playGhostAudio(buffer, useReverb, pitchVal);
                 if (previewSource) {
@@ -1483,11 +1506,12 @@
 
             // Fallback Web Speech
             if (window.speechSynthesis) {
-                const u = new SpeechSynthesisUtterance(currentStoryText);
+                const u = new SpeechSynthesisUtterance(previewText);
                 u.lang = 'th-TH';
+                const profile = getNarrationProfile();
                 const isPitch = document.getElementById('fx-pitch')?.checked ?? false;
-                u.pitch = isPitch ? 0.3 : 0.9;
-                u.rate = isPitch ? 0.75 : 0.95;
+                u.pitch = isPitch ? Math.min(profile.speechPitch, 0.5) : profile.speechPitch;
+                u.rate = isPitch ? Math.min(profile.speechRate, 0.8) : profile.speechRate;
                 u.onend = () => {
                     previewPlaying = false;
                     statusEl.innerText = 'หยุดอยู่';
@@ -1509,6 +1533,11 @@
             exportAudioRaw(currentStoryText);
         }
 
+        const originalGenerateMediaAssets = generateMediaAssets;
+        generateMediaAssets = async function() {
+            await originalGenerateMediaAssets();
+            updateMediaButtonLabel();
+        };
     </script>
 </body>
 

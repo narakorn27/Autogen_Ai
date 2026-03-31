@@ -6,6 +6,8 @@ let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 let convolver, filterBass, analyser, masterGain, reverbGain;
 
 function initAudioEngine() {
+    if (masterGain && analyser && convolver && reverbGain) return;
+
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
 
@@ -40,6 +42,7 @@ function createReverbBuffer(ctx, duration, decay) {
 
 // สั่งเล่นเสียงที่ผ่าน Effect (Realtime)
 async function playGhostAudio(buffer, useReverb = true, pitchRate = 1.0) {
+    initAudioEngine();
     if (audioCtx.state === 'suspended') await audioCtx.resume();
     const audioBuffer = await audioCtx.decodeAudioData(buffer.slice(0)); // slice to avoid detached buffer
 
@@ -190,11 +193,7 @@ async function exportAudioWithFX(storyText) {
 
     try {
         // 1. สร้างเสียงจาก Cloud TTS
-        let voiceId = 'Charon';
-        document.querySelectorAll('.voice-opt').forEach(opt => {
-            if (!opt.querySelector('.lucide-check-circle-2:not(.hidden)')) return;
-            voiceId = opt.getAttribute('data-voice') || 'Charon';
-        });
+        const voiceId = typeof getSelectedVoiceId === 'function' ? getSelectedVoiceId() : 'Charon';
 
         const rawBuffer = await synthesizeCloudTTS(storyText, voiceId);
         if (!rawBuffer) {
@@ -232,11 +231,7 @@ async function exportAudioRaw(storyText) {
     if (statusEl) statusEl.innerHTML = '<span class="text-yellow-500 animate-pulse">⏳ กำลัง Synthesize เสียงดิบ...</span>';
 
     try {
-        let voiceId = 'Charon';
-        document.querySelectorAll('.voice-opt').forEach(opt => {
-            if (!opt.querySelector('.lucide-check-circle-2:not(.hidden)')) return;
-            voiceId = opt.getAttribute('data-voice') || 'Charon';
-        });
+        const voiceId = typeof getSelectedVoiceId === 'function' ? getSelectedVoiceId() : 'Charon';
 
         const rawBuffer = await synthesizeCloudTTS(storyText, voiceId);
         if (!rawBuffer) {

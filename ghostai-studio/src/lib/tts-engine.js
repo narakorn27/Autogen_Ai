@@ -1,10 +1,10 @@
 // ========================================== //
-//  👻 GhostAI Studio — GEMINI TTS ENGINE      //
+//  GhostAI Studio - TTS Engine              //
 // ========================================== //
 
 const GEMINI_TTS_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GOOGLE_CLOUD_TTS_ENDPOINT = 'https://texttospeech.googleapis.com/v1/text:synthesize';
 
-// ข้อมูลเสียง Gemini Voice
 const GEMINI_VOICES = [
     { id: 'Charon', name: 'ชารอน', gender: 'M', desc: 'สุขุม ลึก มืออาชีพ' },
     { id: 'Aurus', name: 'ออรัส', gender: 'M', desc: 'นิ่ง หนักแน่น มืดมน' },
@@ -16,7 +16,7 @@ const GEMINI_VOICES = [
     { id: 'Iapetus', name: 'ไอเพทัส', gender: 'M', desc: 'ชัดเจน สะอาด คมชัด' },
     { id: 'Umbriel', name: 'อัมเบรียล', gender: 'M', desc: 'ผ่อนคลาย ลุ่มลึก เหมือนคนเล่าเรื่อง' },
     { id: 'Algieba', name: 'อัลเจียบา', gender: 'M', desc: 'เรียบลื่น ไหลลื่น ดูดดึง' },
-    { id: 'Sadaltegel', name: 'ซาดัลเทเกอร์', gender: 'M', desc: 'รอบรู้ น่าเชื่อถือ เนิบช้า' },
+    { id: 'Sadaltegel', name: 'ซาดัลเทเกอร', gender: 'M', desc: 'รอบรู้ น่าเชื่อถือ เนิบช้า' },
     { id: 'Achird', name: 'อาชิร์ด', gender: 'M', desc: 'เป็นกันเอง ให้ความรู้สึกจริง' },
     { id: 'Kore', name: 'โคเร', gender: 'F', desc: 'เข้มแข็ง หนักแน่น มีพลัง' },
     { id: 'Gacrux', name: 'กาครัส', gender: 'F', desc: 'สุขุม น่าเชื่อถือ เย็นชา' },
@@ -27,7 +27,44 @@ const GEMINI_VOICES = [
     { id: 'Sulafat', name: 'ซูลาฟาต', gender: 'F', desc: 'อบอุ่น ดูดดึง ดูน่าเชื่อถือ' }
 ];
 
-// Helper: แปลง Raw PCM (จาก Gemini) เป็น WAV Buffer ให้ AudioContext เล่นได้
+const GOOGLE_TTS_VOICE_MAP = {
+    Charon: 'th-TH-Chirp3-HD-Charon',
+    Aurus: 'th-TH-Chirp3-HD-Orus',
+    Fenrir: 'th-TH-Chirp3-HD-Fenrir',
+    Algenib: 'th-TH-Chirp3-HD-Algenib',
+    Rasalgethi: 'th-TH-Chirp3-HD-Rasalgethi',
+    Alnilam: 'th-TH-Chirp3-HD-Alnilam',
+    Schedar: 'th-TH-Chirp3-HD-Schedar',
+    Iapetus: 'th-TH-Chirp3-HD-Iapetus',
+    Umbriel: 'th-TH-Chirp3-HD-Umbriel',
+    Algieba: 'th-TH-Chirp3-HD-Algieba',
+    Sadaltegel: 'th-TH-Chirp3-HD-Sadaltager',
+    Achird: 'th-TH-Chirp3-HD-Achird',
+    Kore: 'th-TH-Chirp3-HD-Kore',
+    Gacrux: 'th-TH-Chirp3-HD-Gacrux',
+    Erinome: 'th-TH-Chirp3-HD-Erinome',
+    Despina: 'th-TH-Chirp3-HD-Despina',
+    Achernar: 'th-TH-Chirp3-HD-Achernar',
+    Vindemiatrix: 'th-TH-Chirp3-HD-Vindemiatrix',
+    Sulafat: 'th-TH-Chirp3-HD-Sulafat',
+    spirit: 'th-TH-Chirp3-HD-Charon'
+};
+
+function getRuntimeApiKey(inputId, storageKey) {
+    const inputValue = document.getElementById(inputId)?.value?.trim();
+    if (inputValue) return inputValue;
+    return localStorage.getItem(storageKey)?.trim() || '';
+}
+
+function decodeBase64Audio(base64Data) {
+    const binaryStr = atob(base64Data);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+    }
+    return bytes;
+}
+
 function pcmToWav(pcmDataView, sampleRate = 24000, numChannels = 1, bitDepth = 16) {
     const dataLength = pcmDataView.length;
     const wavBuffer = new ArrayBuffer(44 + dataLength);
@@ -36,7 +73,9 @@ function pcmToWav(pcmDataView, sampleRate = 24000, numChannels = 1, bitDepth = 1
     const blockAlign = numChannels * (bitDepth / 8);
 
     function writeString(offset, string) {
-        for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
     }
 
     writeString(0, 'RIFF');
@@ -57,93 +96,122 @@ function pcmToWav(pcmDataView, sampleRate = 24000, numChannels = 1, bitDepth = 1
     return wavBuffer;
 }
 
-// ----------------------------------------------------
-// 🎙️ ขอเสียงพูดจาก Gemini API
-// ----------------------------------------------------
-async function synthesizeCloudTTS(text, voiceId = 'Charon') {
-    const apiKey = localStorage.getItem('gh_api_gemini');
+async function synthesizeWithGoogleCloudTTS(text, voiceId) {
+    const apiKey = getRuntimeApiKey('api-tts', 'gh_api_tts');
     if (!apiKey) return null;
 
-    let cleanText = text.replace(/\[JUMP_SCARE\]/g, '');
+    const voiceName = GOOGLE_TTS_VOICE_MAP[voiceId] || 'th-TH-Standard-A';
+    const res = await fetch(`${GOOGLE_CLOUD_TTS_ENDPOINT}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            input: { text },
+            voice: { languageCode: 'th-TH', name: voiceName },
+            audioConfig: {
+                audioEncoding: 'LINEAR16',
+                speakingRate: 0.95
+            }
+        })
+    });
 
-    // Gemini API จำกัดความยาวต่อ 1 Request นิดหน่อย หั่นท่อนละ 1500 ตัวอักษร
-    const MAX_LENGTH = 1500; 
-    let chunks = [];
-    const tokens = cleanText.split(/([ \n]+)/);
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Google Cloud TTS ${res.status}: ${errText}`);
+    }
+
+    const data = await res.json();
+    if (!data.audioContent) return null;
+    return decodeBase64Audio(data.audioContent).buffer;
+}
+
+async function synthesizeWithGeminiTTS(text, voiceId) {
+    const apiKey = getRuntimeApiKey('api-gemini', 'gh_api_gemini');
+    if (!apiKey) return null;
+
+    const maxLength = 800;
+    const chunks = [];
+    const tokens = text.split(/([ \n]+)/);
     let currentChunk = '';
-    
+
     for (const token of tokens) {
-        if ((currentChunk.length + token.length) > MAX_LENGTH) {
+        if ((currentChunk.length + token.length) > maxLength) {
             chunks.push(currentChunk);
             currentChunk = token;
         } else {
             currentChunk += token;
         }
     }
-    if (currentChunk.trim() !== '') chunks.push(currentChunk);
 
+    if (currentChunk.trim()) chunks.push(currentChunk);
 
-    const chunkPromises = chunks.map(async (c, i) => {
-        if (!c.trim()) return null;
-        try {
-            const prompt = `จงพูดประโยคนี้ด้วยน้ำเสียงเล่าเรื่องผีภาษาไทย แบบอินเนอร์เต็มที่:\n\n${c.trim()}`;
-            const res = await fetch(`${GEMINI_TTS_ENDPOINT}?key=${apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        responseModalities: ["AUDIO"],
-                        speechConfig: {
-                            voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceId } }
-                        }
+    const results = await Promise.all(chunks.map(async (chunk, index) => {
+        if (!chunk.trim()) return null;
+
+        const prompt = `จงพูดประโยคนี้ด้วยน้ำเสียงเล่าเรื่องผีภาษาไทย แบบอินเนอร์เต็มที่:\n\n${chunk.trim()}`;
+        const res = await fetch(`${GEMINI_TTS_ENDPOINT}?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseModalities: ['AUDIO'],
+                    speechConfig: {
+                        voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceId } }
                     }
-                })
-            });
+                }
+            })
+        });
 
-            if (!res.ok) {
-                console.error("[GhostAI] Gemini TTS Failed on chunk", res.status);
-                return null;
-            }
-
-            const data = await res.json();
-            const parts = data.candidates?.[0]?.content?.parts || [];
-            const audioPart = parts.find(p => p.inlineData && p.inlineData.mimeType.includes("audio/pcm"));
-            
-            if (audioPart) {
-                const binaryStr = atob(audioPart.inlineData.data);
-                const bytes = new Uint8Array(binaryStr.length);
-                for (let j = 0; j < binaryStr.length; j++) bytes[j] = binaryStr.charCodeAt(j);
-                return { index: i, bytes: bytes };
-            }
-        } catch (err) {
-            console.error("[GhostAI] TTS Exception chunk:", err);
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Gemini TTS ${res.status}: ${errText}`);
         }
-        return null;
-    });
 
-    // รอโหลดทุกท่อนพร้อมกัน! (เร็วขึ้น 5 เท่า)
-    const results = await Promise.all(chunkPromises);
-    
-    // เรียงลำดับกลับให้ถูกต้อง
+        const data = await res.json();
+        const parts = data.candidates?.[0]?.content?.parts || [];
+        const audioPart = parts.find(part => part.inlineData?.mimeType?.includes('audio/pcm'));
+        if (!audioPart?.inlineData?.data) return null;
+
+        return { index, bytes: decodeBase64Audio(audioPart.inlineData.data) };
+    }));
+
     const pcmBuffers = results
-        .filter(r => r !== null)
+        .filter(Boolean)
         .sort((a, b) => a.index - b.index)
-        .map(r => r.bytes);
+        .map(item => item.bytes);
 
-    if (pcmBuffers.length === 0) return null;
+    if (!pcmBuffers.length) return null;
 
-    // Concat Raw PCM
     let totalLength = 0;
-    for (let b of pcmBuffers) totalLength += b.length;
-    
-    let concatenatedPcm = new Uint8Array(totalLength);
+    for (const buffer of pcmBuffers) totalLength += buffer.length;
+
+    const concatenatedPcm = new Uint8Array(totalLength);
     let offset = 0;
-    for (let b of pcmBuffers) {
-        concatenatedPcm.set(b, offset);
-        offset += b.length;
+    for (const buffer of pcmBuffers) {
+        concatenatedPcm.set(buffer, offset);
+        offset += buffer.length;
     }
 
-    // แปลง Raw 24kHz PCM เป็น WAV
     return pcmToWav(concatenatedPcm, 24000);
+}
+
+async function synthesizeCloudTTS(text, voiceId = 'Charon') {
+    const cleanText = (text || '').replace(/\[JUMP_SCARE\]/g, '').trim();
+    if (!cleanText) return null;
+
+    try {
+        const googleAudio = await synthesizeWithGoogleCloudTTS(cleanText, voiceId);
+        if (googleAudio) return googleAudio;
+    } catch (err) {
+        console.error('[GhostAI] Google Cloud TTS failed:', err);
+    }
+
+    try {
+        const geminiAudio = await synthesizeWithGeminiTTS(cleanText, voiceId);
+        if (geminiAudio) return geminiAudio;
+    } catch (err) {
+        console.error('[GhostAI] Gemini TTS failed:', err);
+    }
+
+    return null;
 }

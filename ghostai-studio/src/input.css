@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Mitr", "Inter", sans-serif;
+
+  --color-dark-900: #050505;
+  --color-dark-800: #0a0a0a;
+  --color-dark-700: #141414;
+  --color-dark-600: #262626;
+
+  --color-crimson-400: #f87171;
+  --color-crimson-500: #ef4444;
+  --color-crimson-600: #dc2626;
+  --color-crimson-700: #b91c1c;
+  --color-crimson-800: #991b1b;
+  --color-crimson-900: #450a0a;
+
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-fade-in: fadeIn 0.5s ease-out;
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+body {
+    background-color: #050505;
+    background-image: radial-gradient(circle at 50% 0%, #1a0505 0%, #050505 70%);
+    color: #f5f5f5;
+    min-height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+html, body {
+    height: 100%;
+}
+
+.glass-panel {
+    background: rgba(20, 20, 20, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(220, 38, 38, 0.1);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Custom Scrollbar VIP */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #450a0a;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #991b1b;
+}
+
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #450a0a #0a0a0a;
+    scrollbar-gutter: stable;
+}
+
+html {
+    scrollbar-gutter: stable;
+}
+
+/* Effects */
+.crimson-glow {
+    box-shadow: 0 0 15px rgba(220, 38, 38, 0.3);
+}
+
+.crimson-glow:hover {
+    box-shadow: 0 0 25px rgba(220, 38, 38, 0.5);
+}
+
+/* Range Slider Styling */
+input[type=range] {
+    accent-color: #dc2626;
+}
+
+/* Typewriter Cursor */
+.typewriter-cursor::after {
+    content: '|';
+    animation: blink 1s step-end infinite;
+    color: #dc2626;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
