@@ -3,9 +3,14 @@
     "@tailwindcss/cli": "^4.2.2",
     "autoprefixer": "^10.4.27",
     "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.2",
+    "vite": "^8.0.3"
   },
   "scripts": {
-    "build": "tailwindcss -i src/input.css -o public/output.css"
+    "dev": "node scripts/build-css.mjs && node scripts/sync-lib.mjs && node node_modules/vite/bin/vite.js --base ./",
+    "build:css": "node scripts/build-css.mjs",
+    "sync:lib": "node scripts/sync-lib.mjs",
+    "build": "node scripts/build-css.mjs && node scripts/sync-lib.mjs && node node_modules/vite/bin/vite.js build --base ./ && node scripts/copy-pages-to-dist.mjs",
+    "preview": "node node_modules/vite/bin/vite.js preview --base ./"
   }
 }
