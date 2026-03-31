@@ -1,4 +1,3 @@
-// ── Arin Background Worker v7.2 ──
 'use strict';
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -6,12 +5,16 @@ chrome.runtime.onInstalled.addListener(() => {
     chrome.declarativeNetRequest.updateDynamicRules({
         removeRuleIds: [1],
         addRules: [{
-            id: 1, priority: 1,
-            action: { type: 'modifyHeaders', responseHeaders: [{ header: 'content-security-policy', operation: 'remove' }] },
+            id: 1,
+            priority: 1,
+            action: {
+                type: 'modifyHeaders',
+                responseHeaders: [{ header: 'content-security-policy', operation: 'remove' }]
+            },
             condition: { urlFilter: '||labs.google', resourceTypes: ['main_frame', 'sub_frame'] }
         }]
     }).catch(console.error);
-    console.log('[Arin BG] Extension ติดตั้งแล้ว');
+    console.log('[Arin BG] Installed');
 });
 
 let queue = [];
@@ -19,175 +22,25 @@ let isRunning = false;
 let isPaused = false;
 let aiKeyInvalid = false;
 
+const WHISK_URL = 'https://labs.google/fx/tools/whisk/project';
+
 const broadcastLog = (text, level = 'info') => {
     console.log(`[Arin BG][${level}] ${text}`);
     chrome.runtime.sendMessage({ action: 'LOG', text, level }).catch(() => {});
 };
 
-const getTargetUrl = (targetApp) => targetApp === 'flow'
-    ? 'https://labs.google/fx/tools/flow/project'
-    : 'https://labs.google/fx/tools/whisk/project';
-
-// ─── เปิด tab ใหม่และรอโหลด ───
-const openTabAndWait = async (url, timeoutMs = 15000) => {
-    const created = await new Promise((resolve) => {
-        chrome.tabs.create({ url, active: true }, (tab) => resolve(tab || null));
-    });
-    const tabId = created?.id;
-    if (!tabId) return null;
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-        const tab = await new Promise((resolve) => { chrome.tabs.get(tabId, (t) => resolve(t || null)); });
-        if (tab?.status === 'complete') return tab;
-        await new Promise((r) => setTimeout(r, 1000));
-    }
-    return await new Promise((resolve) => { chrome.tabs.get(created.id, (t) => resolve(t || created)); });
-};
-
-// ─── Inject content scripts ผ่าน scripting API (fallback เมื่อ PING ไม่ตอบ) ───
-const injectContentScripts = async (tabId) => {
-    try {
-        await chrome.scripting.executeScript({
-            target: { tabId },
-            files: ['content-flow.js', 'content.js']
-        });
-        broadcastLog(`Injected content scripts ไปยัง tab ${tabId}`, 'info');
-        await new Promise(r => setTimeout(r, 2000));
-    } catch (e) {
-        broadcastLog(`Inject failed: ${e.message}`, 'warn');
-    }
-};
-
-// ─── รอ Content Script พร้อม + เช็ค isReady ───
-const waitForContentReady = async (tabId, timeoutMs = 25000, targetApp = 'whisk') => {
-    const start = Date.now();
-    let injected = false;
-    while (Date.now() - start < timeoutMs) {
-        if (isPaused) return { ready: false, state: 'paused' };
-        try {
-            const resp = await chrome.tabs.sendMessage(tabId, { action: 'PING' });
-            if (resp?.ok) {
-                if (resp.isReady) return { ready: true, state: resp.state, url: resp.url, script: resp.script };
-                // ถ้า catchAll และมีปุ่ม add_photo → Whisk เท่านั้น (Flow ไม่มีปุ่มนี้)
-                if (targetApp === 'whisk' && resp.state === 'catchall' && resp.hasAddPhotoBtn) {
-                    broadcastLog(`Tab ${tabId}: catchAll มีปุ่ม — ส่ง CLICK_ADD_PHOTO_BTN...`, 'warn');
-                    const clickResp = await chrome.tabs.sendMessage(tabId, { action: 'CLICK_ADD_PHOTO_BTN' }).catch(() => null);
-                    if (clickResp?.clicked) {
-                        await new Promise(r => setTimeout(r, 4000));
-                        continue;
-                    }
-                }
-                broadcastLog(`Tab ${tabId}: state=${resp.state} workReady=${resp.workReady} script=${resp.script} — รอ...`, 'warn');
-            }
-        } catch (e) {
-            // Content script ยังไม่โหลด → inject ผ่าน scripting API
-            if (!injected) {
-                broadcastLog(`Tab ${tabId}: ไม่มี content script — inject ผ่าน scripting API...`, 'warn');
-                await injectContentScripts(tabId);
-                injected = true;
-                continue;
-            }
-        }
-        await new Promise(r => setTimeout(r, 900));
-    }
-    return { ready: false, state: 'timeout' };
-};
-
-// ─── Navigate tab ไปที่ URL ที่ต้องการ (ใช้ update แทน reload) ───
-const navigateTabTo = async (tabId, url) => {
-    return new Promise((resolve) => {
-        chrome.tabs.update(tabId, { url, active: true }, (tab) => resolve(tab || null));
+const broadcastQueue = () => {
+    chrome.runtime.sendMessage({ action: 'QUEUE_UPDATED', queue }).catch(() => {});
+    chrome.storage.local.get('botState', (data) => {
+        const state = data.botState || {};
+        state.queue = queue;
+        chrome.storage.local.set({ botState: state });
     });
 };
 
-// ─── หา tab เป้าหมาย ───
-const findTargetTab = async (targetApp) => {
-    const urlPattern = targetApp === 'flow' ? '*://labs.google/*tools/flow*' : '*://labs.google/*tools/whisk*';
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (activeTab?.url?.includes('labs.google')) {
-        if ((targetApp === 'whisk' && activeTab.url.includes('whisk')) ||
-            (targetApp === 'flow' && activeTab.url.includes('/tools/flow'))) return activeTab;
-    }
-    const tabs = await chrome.tabs.query({ url: urlPattern });
-    return tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0] || null;
-};
-
-// ─── ตรวจสอบว่า URL ของ tab อยู่ใน catchAll หรือไม่ ───
-const isTabOnCatchAll = (tab) => {
-    const url = tab?.url || '';
-    return url.includes('[...catchAll]') || url.includes('%5B...catchAll%5D');
-};
-
-// ─── ดูแล tab ให้กลับมาหน้าที่ถูกต้อง (ฉลาดขึ้น: ไม่ใช้ reload) ───
-const recoverTabToWorkPage = async (tab, targetApp) => {
-    const tabId = tab.id;
-    const projectUrl = getTargetUrl(targetApp);
-    const tabUrl = tab.url || '';
-    broadcastLog(`recoverTabToWorkPage: tabId=${tabId} url=${tabUrl.slice(0, 70)}`, 'warn');
-
-    // ── ถ้า URL เป็น /project หรือ /project/UUID อยู่แล้ว → รอ content script ก่อน ──
-    const isAlreadyOnProject = tabUrl.match(/\/tools\/whisk\/project/) ||
-                               tabUrl.match(/\/tools\/flow\/project/);
-
-    if (isAlreadyOnProject) {
-        broadcastLog(`Tab อยู่ที่ /project แล้ว — รอ content script โหลด...`, 'info');
-        // รอนานขึ้นเพราะหน้าโหลดอยู่
-        await new Promise(r => setTimeout(r, 3000));
-        const result = await waitForContentReady(tabId, 20000);
-        if (result.ready) {
-            broadcastLog(`Tab ${tabId} พร้อมแล้ว ✅ state=${result.state}`, 'success');
-            return true;
-        }
-        // ถ้ายังไม่พร้อม ลองส่ง CLICK_ADD_PHOTO_BTN ก่อน navigate
-    }
-
-    // ── ลองให้ content script คลิกปุ่มก่อน ──
-    try {
-        const clickResp = await Promise.race([
-            chrome.tabs.sendMessage(tabId, { action: 'CLICK_ADD_PHOTO_BTN' }),
-            new Promise(r => setTimeout(() => r(null), 4000))
-        ]).catch(() => null);
-
-        if (clickResp?.clicked) {
-            broadcastLog(`คลิกปุ่มสำเร็จ — รอหน้าโหลด...`, 'info');
-            await new Promise(r => setTimeout(r, 4000));
-            const result = await waitForContentReady(tabId, 15000);
-            if (result.ready) {
-                broadcastLog(`Tab ${tabId} กลับมาพร้อม ✅`, 'success');
-                return true;
-            }
-        }
-    } catch(e) {}
-
-    // ── fallback: reload หน้าก่อน navigate ──
-    broadcastLog(`PING timeout บนหน้านี้ — พยายาม Reload tab ${tabId}...`, 'warn');
-    try { await chrome.tabs.reload(tabId); } catch(e) {}
-    await new Promise(r => setTimeout(r, 8000));
-    
-    const finalPing = await waitForContentReady(tabId, 15000);
-    if (finalPing.ready) return true;
-
-    broadcastLog(`Navigate tab ${tabId} → ${projectUrl}`, 'warn');
-    await navigateTabTo(tabId, projectUrl);
-    await new Promise(r => setTimeout(r, 6000));
-
-    const result = await waitForContentReady(tabId, 25000);
-    if (result.ready) {
-        broadcastLog(`Tab ${tabId} กลับมาพร้อม ✅`, 'success');
-        return true;
-    }
-
-    // รอบ 2
-    await navigateTabTo(tabId, projectUrl);
-    await new Promise(r => setTimeout(r, 8000));
-    const result2 = await waitForContentReady(tabId, 20000);
-    return result2.ready;
-};
-
-// ─── Queue State Load ───
 chrome.storage.local.get('botState', (data) => {
-    if (data.botState && data.botState.queue) {
-        queue = data.botState.queue.map(item => {
+    if (data.botState?.queue) {
+        queue = data.botState.queue.map((item) => {
             if (['running', 'typing', 'submitting'].includes(item.status)) {
                 return { ...item, status: 'pending', percent: 0 };
             }
@@ -197,26 +50,131 @@ chrome.storage.local.get('botState', (data) => {
     }
 });
 
-const broadcastQueue = () => {
-    chrome.runtime.sendMessage({ action: 'QUEUE_UPDATED', queue }).catch(() => {});
-    chrome.storage.local.get('botState', (data) => {
-        let state = data.botState || {};
-        state.queue = queue;
-        chrome.storage.local.set({ botState: state });
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const openTabAndWait = async (url, timeoutMs = 15000) => {
+    const created = await new Promise((resolve) => {
+        chrome.tabs.create({ url, active: true }, (tab) => resolve(tab || null));
     });
+    if (!created?.id) return null;
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        const tab = await new Promise((resolve) => chrome.tabs.get(created.id, (t) => resolve(t || null)));
+        if (tab?.status === 'complete') return tab;
+        await sleep(1000);
+    }
+    return created;
+};
+
+const injectContentScript = async (tabId) => {
+    try {
+        await chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['content.js']
+        });
+        await sleep(1500);
+        broadcastLog(`Injected content.js ไปยัง tab ${tabId}`, 'info');
+    } catch (e) {
+        broadcastLog(`Inject failed: ${e.message}`, 'warn');
+    }
+};
+
+const waitForContentReady = async (tabId, timeoutMs = 25000) => {
+    const start = Date.now();
+    let injected = false;
+    while (Date.now() - start < timeoutMs) {
+        if (isPaused) return { ready: false, state: 'paused' };
+        try {
+            const resp = await chrome.tabs.sendMessage(tabId, { action: 'PING' });
+            if (resp?.ok) {
+                if (resp.isReady) return { ready: true, state: resp.state };
+                if (resp.state === 'catchall' && resp.hasAddPhotoBtn) {
+                    const clickResp = await chrome.tabs.sendMessage(tabId, { action: 'CLICK_ADD_PHOTO_BTN' }).catch(() => null);
+                    if (clickResp?.clicked) {
+                        await sleep(3000);
+                        continue;
+                    }
+                }
+            }
+        } catch (e) {
+            if (!injected) {
+                await injectContentScript(tabId);
+                injected = true;
+                continue;
+            }
+        }
+        await sleep(900);
+    }
+    return { ready: false, state: 'timeout' };
+};
+
+const navigateTabTo = async (tabId, url) => new Promise((resolve) => {
+    chrome.tabs.update(tabId, { url, active: true }, (tab) => resolve(tab || null));
+});
+
+const isTabOnCatchAll = (tab) => {
+    const url = tab?.url || '';
+    return url.includes('[...catchAll]') || url.includes('%5B...catchAll%5D');
+};
+
+const findTargetTab = async () => {
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab?.url?.includes('/tools/whisk')) return activeTab;
+    const tabs = await chrome.tabs.query({ url: '*://labs.google/*tools/whisk*' });
+    return tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0] || null;
+};
+
+const recoverTabToWorkPage = async (tab) => {
+    if (!tab?.id) return false;
+    const tabId = tab.id;
+    const tabUrl = tab.url || '';
+    const isOnProject = /\/tools\/whisk\/project/.test(tabUrl);
+
+    if (isOnProject) {
+        await sleep(3000);
+        const result = await waitForContentReady(tabId, 20000);
+        if (result.ready) return true;
+    }
+
+    try {
+        const clickResp = await chrome.tabs.sendMessage(tabId, { action: 'CLICK_ADD_PHOTO_BTN' }).catch(() => null);
+        if (clickResp?.clicked) {
+            await sleep(3000);
+            const result = await waitForContentReady(tabId, 15000);
+            if (result.ready) return true;
+        }
+    } catch (e) {}
+
+    try { await chrome.tabs.reload(tabId); } catch (e) {}
+    await sleep(6000);
+    let result = await waitForContentReady(tabId, 15000);
+    if (result.ready) return true;
+
+    await navigateTabTo(tabId, WHISK_URL);
+    await sleep(5000);
+    result = await waitForContentReady(tabId, 20000);
+    return result.ready;
 };
 
 const processQueue = async () => {
-    if (isPaused) { isRunning = false; return; }
-    if (queue.length === 0) { isRunning = false; return; }
-    isRunning = true;
-    const pendingItems = queue.filter(item => item.status === 'pending');
-    if (pendingItems.length === 0) {
-        if (queue.filter(item => item.status === 'running').length === 0) isRunning = false;
+    if (isPaused) {
+        isRunning = false;
         return;
     }
-    const runningCount = queue.filter(item => item.status === 'running').length;
-    if (1 - runningCount > 0) pendingItems.slice(0, 1).forEach(item => runItem(item));
+    if (queue.length === 0) {
+        isRunning = false;
+        return;
+    }
+
+    isRunning = true;
+    const pendingItems = queue.filter((item) => item.status === 'pending');
+    if (pendingItems.length === 0) {
+        if (!queue.some((item) => item.status === 'running')) isRunning = false;
+        return;
+    }
+
+    const runningCount = queue.filter((item) => item.status === 'running').length;
+    if (runningCount === 0) pendingItems.slice(0, 1).forEach((item) => runItem(item));
 };
 
 const runItem = async (item) => {
@@ -228,127 +186,51 @@ const runItem = async (item) => {
 
     const settings = item.settings || {};
     const maxRetries = 3;
-    broadcastLog(`เริ่มงาน: "${item.setName}" | prompt: "${(item.prompt || '').slice(0, 40)}..."`, 'step');
+    broadcastLog(`เริ่มงาน: "${item.setName}"`, 'step');
 
     try {
-        const targetApp = settings.targetApp || 'whisk';
-        let flowMode = 'text_to_video';
-        if (targetApp === 'flow') {
-            if (settings.flowOutputType === 'image') flowMode = 'text_to_image';
-            else if (settings.flowVideoMode === 'frame') flowMode = 'frame_to_video';
-        }
-
-        // ─── AI Enhance ───
         let finalPrompt = item.prompt;
         if (settings.aiEnhanceToggle && settings.apiKey && !aiKeyInvalid) {
             broadcastLog('AI Enhance กำลังแต่ง Prompt...', 'step');
             let promptToEnhance = item.prompt;
             if (settings.randomSceneToggle) promptToEnhance += ' [RANDOMIZE_SCENE]';
-            const providerToUse = targetApp === 'flow'
-                ? (settings.aiProviderFlow || settings.aiProvider || 'groq_thai')
-                : (settings.aiProvider || 'groq');
             try {
-                finalPrompt = await enhanceWithAI(promptToEnhance, settings.apiKey, providerToUse, targetApp, flowMode);
-                broadcastLog(`AI Enhance สำเร็จ (len=${finalPrompt.length})`, 'success');
+                finalPrompt = await enhanceWithAI(promptToEnhance, settings.apiKey, settings.aiProvider || 'groq');
             } catch (e) {
-                broadcastLog(`AI Enhance ล้มเหลว → ใช้ Prompt เดิม: ${e.message}`, 'warn');
+                broadcastLog(`AI Enhance ล้มเหลว: ${e.message}`, 'warn');
                 if (String(e.message).includes('401') || String(e.message).toLowerCase().includes('invalid api key')) {
                     aiKeyInvalid = true;
-                    broadcastLog('API Key ใช้ไม่ได้ — จะข้าม AI Enhance จนกว่าจะบันทึกใหม่', 'error');
                 }
             }
         }
 
         item.finalPrompt = finalPrompt;
-        broadcastLog(`Prompt: "${finalPrompt.slice(0, 80)}..."`, 'info');
 
-        // ─── หา Tab ───
-        broadcastLog(`หา Tab: ${targetApp}`, 'step');
-        let activeTab = await findTargetTab(targetApp);
-
+        let activeTab = await findTargetTab();
         if (!activeTab) {
-            // เปิด tab ใหม่
-            const url = getTargetUrl(targetApp);
-            broadcastLog(`ไม่พบ tab — เปิดใหม่: ${url}`, 'warn');
-            const createdTab = await openTabAndWait(url);
-            if (!createdTab?.id) throw new Error('[OFF_SITE] เปิดหน้าไม่สำเร็จ');
-            await new Promise((r) => setTimeout(r, 2000));
-            activeTab = createdTab;
+            broadcastLog('ไม่พบแท็บ Whisk - เปิดใหม่', 'warn');
+            activeTab = await openTabAndWait(WHISK_URL);
+            if (!activeTab?.id) throw new Error('[OFF_SITE] เปิดหน้า Whisk ไม่สำเร็จ');
         }
 
-        broadcastLog(`พบ Tab: ${activeTab.url?.slice(0, 70)}`, 'success');
+        await sleep(2500);
 
-        // ── รอให้ tab stabilize ก่อน PING ──
-        await new Promise(r => setTimeout(r, 3000)); // เพิ่มจาก 1500 → 3000
-
-        // ─── ตรวจสอบ Tab ก่อนส่งคำสั่ง ───
-        // เช็ค PING ก่อนเสมอ — ถ้าหน้าไม่พร้อมให้แก้ก่อน
-        broadcastLog('ตรวจสอบสถานะ Tab...', 'step');
-
-        // ── ถ้า URL เป็น /project อยู่แล้ว → รอ PING ตรงๆ ไม่ต้อง recover ──
-        const isOnProject = (activeTab.url || '').match(/\/tools\/(whisk|flow)\/project/);
-
+        const isOnProject = /\/tools\/whisk\/project/.test(activeTab.url || '');
         if (isOnProject) {
-            broadcastLog('Tab อยู่ที่ /project แล้ว — รอ PING...', 'info');
-            await new Promise(r => setTimeout(r, 2000));
-            const pingResult = await waitForContentReady(activeTab.id, 20000, targetApp);
+            const pingResult = await waitForContentReady(activeTab.id, 20000);
             if (!pingResult.ready) {
-                broadcastLog('PING timeout — กำลัง recover...', 'warn');
-                if (targetApp === 'flow') {
-                    // Flow: inject content script แล้วลองอีกที ไม่ navigate ออก
-                    await injectContentScripts(activeTab.id);
-                    const r2 = await waitForContentReady(activeTab.id, 15000, targetApp);
-                    if (!r2.ready) {
-                        // reload หน้าเดิม (ไม่เปลี่ยน URL)
-                        broadcastLog('Reload tab Flow...', 'warn');
-                        try { await chrome.tabs.reload(activeTab.id); } catch(e) {}
-                        await new Promise(r => setTimeout(r, 6000));
-                        const r3 = await waitForContentReady(activeTab.id, 20000, targetApp);
-                        if (!r3.ready) throw new Error('[NEED_REFRESH] Flow tab ไม่สามารถ recover ได้');
-                    }
-                } else {
-                    // Whisk: ลอง CLICK_ADD_PHOTO_BTN ก่อน navigate
-                    try {
-                        const clickResp = await chrome.tabs.sendMessage(activeTab.id, { action: 'CLICK_ADD_PHOTO_BTN' }).catch(() => null);
-                        if (clickResp?.clicked) {
-                            await new Promise(r => setTimeout(r, 3000));
-                            const r2 = await waitForContentReady(activeTab.id, 15000, targetApp);
-                            if (r2.ready) { broadcastLog('Tab พร้อมหลังคลิก ✅', 'success'); }
-                            else {
-                                await navigateTabTo(activeTab.id, getTargetUrl(targetApp));
-                                await new Promise(r => setTimeout(r, 5000));
-                                const r3 = await waitForContentReady(activeTab.id, 20000, targetApp);
-                                if (!r3.ready) throw new Error('[NEED_REFRESH] Tab ไม่สามารถ recover ได้');
-                            }
-                        } else {
-                            await navigateTabTo(activeTab.id, getTargetUrl(targetApp));
-                            await new Promise(r => setTimeout(r, 5000));
-                            const r2 = await waitForContentReady(activeTab.id, 20000, targetApp);
-                            if (!r2.ready) throw new Error('[NEED_REFRESH] Tab ไม่สามารถ recover ได้');
-                        }
-                    } catch(e) {
-                        throw new Error('[NEED_REFRESH] Tab ไม่สามารถ recover ได้');
-                    }
-                }
+                const recovered = await recoverTabToWorkPage(activeTab);
+                if (!recovered) throw new Error('[NEED_REFRESH] Tab ไม่สามารถ recover ได้');
             }
         } else {
-            const pingResult = await waitForContentReady(activeTab.id, 30000, targetApp);
-            if (!pingResult.ready) {
-                broadcastLog(`Tab ไม่พร้อม (state=${pingResult.state}) — กำลัง recover...`, 'warn');
-                const recovered = await recoverTabToWorkPage(activeTab, targetApp);
+            const pingResult = await waitForContentReady(activeTab.id, 20000);
+            if (!pingResult.ready || isTabOnCatchAll(activeTab) || pingResult.state === 'catchall') {
+                const recovered = await recoverTabToWorkPage(activeTab);
                 if (!recovered) throw new Error('[NEED_REFRESH] Tab ไม่สามารถ recover ได้');
-            } else if (isTabOnCatchAll(activeTab) || pingResult.state === 'catchall') {
-                broadcastLog('Content script แจ้ง catchAll — กำลัง navigate กลับ...', 'warn');
-                const recovered = await recoverTabToWorkPage(activeTab, targetApp);
-                if (!recovered) throw new Error('[CATCH_ALL] navigate กลับไม่สำเร็จ');
             }
         }
 
-        // ─── ส่งคำสั่ง GENERATE ───
-        broadcastLog('ส่งคำสั่ง GENERATE...', 'step');
-
-        // อัปเดต tab reference หลัง recovery
-        const tabs = await chrome.tabs.query({ url: `*://labs.google/*tools/${targetApp === 'flow' ? 'flow' : 'whisk'}*` });
+        const tabs = await chrome.tabs.query({ url: '*://labs.google/*tools/whisk*' });
         if (tabs.length > 0) activeTab = tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0))[0];
 
         const response = await chrome.tabs.sendMessage(activeTab.id, {
@@ -356,163 +238,174 @@ const runItem = async (item) => {
             prompt: finalPrompt,
             promptId: item.id,
             settings,
-            flowMode,
             subjectImage: item.subjectImage,
             sceneImage: item.sceneImage,
-            styleImage: item.styleImage,
-        }).catch(e => {
+            styleImage: item.styleImage
+        }).catch((e) => {
             broadcastLog(`sendMessage error: ${e.message}`, 'error');
             return null;
         });
 
-        if (response && response.success) {
+        if (response?.success) {
             item.status = 'completed';
             item.percent = 100;
-            broadcastLog(`งาน "${item.setName}" สำเร็จ ✓`, 'success');
+            broadcastLog(`งาน "${item.setName}" สำเร็จ`, 'success');
         } else if (!response) {
             throw new Error('[NEED_REFRESH] ไม่ได้รับ response จาก content script');
         } else {
-            // Content script ส่ง error กลับ
-            const isCatchAll = response.isCatchAll || (response.error && response.error.includes('CatchAll'));
-            if (isCatchAll) {
-                // Navigate กลับ (ไม่ reload)
-                broadcastLog('Content แจ้ง CatchAll — navigate กลับ...', 'warn');
-                const tabs2 = await chrome.tabs.query({ url: `*://labs.google/*` });
-                if (tabs2.length > 0) {
-                    await navigateTabTo(tabs2[0].id, getTargetUrl(targetApp));
-                    await new Promise(r => setTimeout(r, 6000));
-                }
-            } else if (response.needRefresh) {
-                broadcastLog('Content แจ้ง needRefresh — navigate กลับ...', 'warn');
-                const tabs3 = await findTargetTab(targetApp);
-                if (tabs3) {
-                    await navigateTabTo(tabs3.id, getTargetUrl(targetApp));
-                    await new Promise(r => setTimeout(r, 6000));
+            if (response.needRefresh) {
+                const tab = await findTargetTab();
+                if (tab?.id) {
+                    await navigateTabTo(tab.id, WHISK_URL);
+                    await sleep(5000);
                 }
             }
             throw new Error(response.error || 'เกิดข้อผิดพลาดจากหน้าเว็บ');
         }
-
     } catch (err) {
         const errMsg = err.message || '';
         broadcastLog(`Error: ${errMsg}`, 'error');
 
         if (isPaused) {
-            item.status = 'pending'; item.error = 'หยุดชั่วคราว';
-            broadcastQueue(); isRunning = false; return;
-        }
-        if (errMsg.includes('[DAILY_LIMIT]')) {
-            item.status = 'failed'; item.error = '🚫 ถึงขีดจำกัดรายวัน';
-            isPaused = true; broadcastQueue(); isRunning = false; return;
-        }
-        if (item.retryCount < maxRetries && !errMsg.includes('[OFF_SITE]')) {
-            item.retryCount++;
             item.status = 'pending';
-            item.error = `🔄 ลองใหม่ ${item.retryCount}/${maxRetries}`;
-            broadcastLog(`จะลองใหม่ใน 5 วิ... (${item.retryCount}/${maxRetries})`, 'warn');
+            item.error = 'หยุดชั่วคราว';
+            broadcastQueue();
+            isRunning = false;
+            return;
+        }
+
+        if (errMsg.includes('[DAILY_LIMIT]')) {
+            item.status = 'failed';
+            item.error = 'ถึงขีดจำกัดรายวัน';
+            isPaused = true;
+            broadcastQueue();
+            isRunning = false;
+            return;
+        }
+
+        if (item.retryCount < maxRetries && !errMsg.includes('[OFF_SITE]')) {
+            item.retryCount += 1;
+            item.status = 'pending';
+            item.error = `ลองใหม่ ${item.retryCount}/${maxRetries}`;
             broadcastQueue();
             setTimeout(() => { if (!isPaused) processQueue(); }, 5000);
             return;
         }
+
         item.status = 'failed';
         item.error = errMsg.replace(/\[.*?\]\s*/, '');
     }
 
     broadcastQueue();
-    if (isPaused) { isRunning = false; return; }
+    if (isPaused) {
+        isRunning = false;
+        return;
+    }
 
-    const delayMs = (parseInt(settings?.delayBetween || '15', 10) * 1000) + Math.floor(Math.random() * 3000);
-    broadcastLog(`พักก่อน ${Math.round(delayMs / 1000)} วิ ก่อนชุดถัดไป...`, 'info');
-    await new Promise(resolve => setTimeout(resolve, delayMs));
-    if (isPaused) { isRunning = false; return; }
+    const delayMs = (parseInt(settings.delayBetween || '15', 10) * 1000) + Math.floor(Math.random() * 3000);
+    await sleep(delayMs);
+    if (isPaused) {
+        isRunning = false;
+        return;
+    }
     processQueue();
 };
 
-// ─── AI Enhance ───
-const enhanceWithAI = async (prompt, apiKey, provider, targetApp, flowMode) => {
+const enhanceWithAI = async (prompt, apiKey, provider) => {
     const isRandomizeScene = prompt.includes('[RANDOMIZE_SCENE]');
     const cleanPrompt = prompt.replace('[RANDOMIZE_SCENE]', '').trim();
-    const isThaiMode = targetApp === 'flow' && flowMode !== 'text_to_image';
     const sceneInstruction = isRandomizeScene ? 'CRUCIAL: Place the subject in a COMPLETELY RANDOM, unique scene each time.' : '';
-    const langInstruction = isThaiMode
-        ? 'ตอบเป็นภาษาไทยเท่านั้น สร้างบทพูดรีวิวสินค้าสั้นๆ น่าสนใจ ไม่เกิน 3 ประโยค'
-        : `You are an expert AI image prompt engineer specializing in Google Whisk (powered by Imagen 4).
-Your task: Transform the user's input into a vivid, detailed English image generation prompt.
+    const systemInstruction = `You are an expert AI image prompt engineer specializing in Google Whisk.
+Transform the user's input into a vivid, detailed English image generation prompt.
 
 RULES:
-- Output ONLY the final prompt. No explanation, no quotes, no preamble.
+- Output ONLY the final prompt.
 - Language: English only.
-- Length: 2-4 sentences, ~50-120 words.
-- Include: subject description, action/pose, environment/scene, lighting style, mood/atmosphere, camera angle or lens style (e.g. low angle, Dutch angle, close-up).
-- Style cue: "cinematic TikTok-style vertical video frame" — bold overlay text implied but described visually.
-- If input mentions Thai cultural context, translate visually into scene description.
-- If input has "| style:" tag, treat text after it as visual style instruction and incorporate it.
+- Length: 2-4 sentences, about 50-120 words.
+- Include subject, environment, lighting, mood, and camera angle.
 ${sceneInstruction}
 
 User Input: "${cleanPrompt}"`;
 
-    const systemInstruction = isThaiMode
-        ? `${langInstruction}\n\nสินค้า: "${cleanPrompt}"`
-        : langInstruction;
+    let url = '';
+    let body = {};
+    const headers = { 'Content-Type': 'application/json' };
 
-    let url = '', body = {}, headers = { 'Content-Type': 'application/json' };
-    const providerBase = provider.replace('_thai', '');
-
-    if (providerBase === 'gemini') {
+    if (provider === 'gemini') {
         url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
         body = { contents: [{ parts: [{ text: systemInstruction }] }] };
         const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-        let data = null;
-        try { data = await res.json(); } catch (e) {}
-        const result = data?.candidates?.[0]?.content?.parts?.[0]?.text
-            || data?.candidates?.[0]?.content?.parts?.find(p => p?.text)?.text;
-        if (!result) throw new Error(`Gemini: ไม่มีผลลัพธ์ (status=${res.status})`);
-        return result.trim();
-
-    } else if (providerBase === 'openrouter') {
-        url = 'https://openrouter.ai/api/v1/chat/completions';
-        headers['Authorization'] = `Bearer ${apiKey}`;
-        body = { messages: [{ role: 'user', content: systemInstruction }], model: 'meta-llama/llama-3-8b-instruct:free' };
-        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-        let data = null;
-        try { data = await res.json(); } catch (e) {}
-        const result = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text;
-        if (!result) throw new Error(`OpenRouter: ไม่มีผลลัพธ์ (status=${res.status})`);
-        return result.trim();
-
-    } else {
-        // Groq
-        url = 'https://api.groq.com/openai/v1/chat/completions';
-        headers['Authorization'] = `Bearer ${apiKey}`;
-        body = { messages: [{ role: 'user', content: systemInstruction }], model: 'llama-3.3-70b-versatile' };
-        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-        let data = null;
-        try { data = await res.json(); } catch (e) {}
-        if (res.status === 401 || res.status === 403) {
-            throw new Error(`Groq: API Key ไม่ถูกต้อง (${res.status})`);
-        }
-        const result = data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? null;
-        if (!result || !result.trim()) throw new Error(`Groq: ไม่มีผลลัพธ์ (status=${res.status})`);
+        const data = await res.json().catch(() => null);
+        const result = data?.candidates?.[0]?.content?.parts?.find((p) => p?.text)?.text;
+        if (!result) throw new Error(`Gemini: ไม่พบผลลัพธ์ (status=${res.status})`);
         return result.trim();
     }
+
+    if (provider === 'openrouter') {
+        url = 'https://openrouter.ai/api/v1/chat/completions';
+        headers.Authorization = `Bearer ${apiKey}`;
+        body = {
+            model: 'meta-llama/llama-3-8b-instruct:free',
+            messages: [{ role: 'user', content: systemInstruction }]
+        };
+        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        const data = await res.json().catch(() => null);
+        const result = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text;
+        if (!result) throw new Error(`OpenRouter: ไม่พบผลลัพธ์ (status=${res.status})`);
+        return result.trim();
+    }
+
+    url = 'https://api.groq.com/openai/v1/chat/completions';
+    headers.Authorization = `Bearer ${apiKey}`;
+    body = {
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: systemInstruction }]
+    };
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => null);
+    if (res.status === 401 || res.status === 403) {
+        throw new Error(`Groq: API Key ไม่ถูกต้อง (${res.status})`);
+    }
+    const result = data?.choices?.[0]?.message?.content ?? data?.choices?.[0]?.text ?? null;
+    if (!result || !result.trim()) throw new Error(`Groq: ไม่พบผลลัพธ์ (status=${res.status})`);
+    return result.trim();
 };
 
 const validateApiKey = async (provider, apiKey) => {
     try {
-        await enhanceWithAI('ทดสอบระบบ', apiKey, provider, 'whisk', 'text_to_image');
+        await enhanceWithAI('ทดสอบระบบ', apiKey, provider);
         return { valid: true };
     } catch (error) {
         return { valid: false, error: error.message };
     }
 };
 
-// ─── Message Listener ───
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === 'LICENSE_VERIFIED') {
+        chrome.storage.local.set({ licenseVerified: true });
+        chrome.tabs.query({ url: '*://labs.google/*tools/whisk*' }, (tabs) => {
+            tabs.forEach((tab) => {
+                chrome.tabs.sendMessage(tab.id, { action: 'LICENSE_OK' }).catch(() => {});
+            });
+        });
+        sendResponse({ success: true });
+        return false;
+    }
+
+    if (message.action === 'LICENSE_REVOKED') {
+        chrome.storage.local.remove('licenseVerified');
+        chrome.tabs.query({ url: '*://labs.google/*tools/whisk*' }, (tabs) => {
+            tabs.forEach((tab) => {
+                chrome.tabs.sendMessage(tab.id, { action: 'LICENSE_REVOKED' }).catch(() => {});
+            });
+        });
+        sendResponse({ success: true });
+        return false;
+    }
+
     if (message.action === 'NAVIGATE_TO_URL') {
-        // Content script ขอให้ background navigate tab
         if (sender.tab?.id) {
-            const url = message.url || 'https://labs.google/fx/tools/whisk/project';
-            broadcastLog(`NAVIGATE_TO_URL: tab=${sender.tab.id} → ${url}`, 'warn');
+            const url = message.url || WHISK_URL;
             chrome.tabs.update(sender.tab.id, { url }).catch(() => {});
         }
         sendResponse({ ok: true });
@@ -521,22 +414,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     if (message.action === 'VALIDATE_API_KEY') {
         validateApiKey(message.provider, message.apiKey)
-            .then(result => sendResponse(result))
-            .catch(error => sendResponse({ valid: false, error: error.message }));
+            .then((result) => sendResponse(result))
+            .catch((error) => sendResponse({ valid: false, error: error.message }));
         return true;
     }
 
     if (message.action === 'API_KEY_UPDATED') {
         aiKeyInvalid = false;
-        broadcastLog('รับ API Key ใหม่ — รีเซ็ตสถานะ', 'info');
         sendResponse({ ok: true });
+        return false;
     }
 
     if (message.action === 'START_QUEUE') {
         const settings = message.settings || {};
         const newItems = (message.items || []).map((item, index) => ({
             ...item,
-            id: item.id || (`q_${Date.now()}_${index}`),
+            id: item.id || `q_${Date.now()}_${index}`,
             status: 'pending',
             percent: 0,
             retryCount: 0,
@@ -545,47 +438,51 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }));
         queue = [...queue, ...newItems];
         isPaused = false;
-        broadcastLog(`รับงานใหม่ ${newItems.length} ชุด`, 'step');
         broadcastQueue();
         if (!isRunning) processQueue();
         sendResponse({ ok: true });
+        return false;
     }
 
     if (message.action === 'CLEAR_QUEUE') {
-        queue = []; isRunning = false; isPaused = false;
+        queue = [];
+        isRunning = false;
+        isPaused = false;
         broadcastQueue();
+        sendResponse({ ok: true });
+        return false;
     }
 
     if (message.action === 'PAUSE_QUEUE') {
-        isPaused = true; isRunning = false;
-        queue.filter(q => ['running', 'typing', 'submitting'].includes(q.status)).forEach(q => {
-            q.status = 'pending'; q.error = 'หยุดชั่วคราว';
+        isPaused = true;
+        isRunning = false;
+        queue.filter((item) => ['running', 'typing', 'submitting'].includes(item.status)).forEach((item) => {
+            item.status = 'pending';
+            item.error = 'หยุดชั่วคราว';
         });
-        broadcastLog('หยุดชั่วคราว', 'warn');
         broadcastQueue();
+        sendResponse({ ok: true });
+        return false;
     }
 
     if (message.action === 'RESUME_QUEUE') {
         isPaused = false;
-        queue.filter(q => q.error === 'หยุดชั่วคราว').forEach(q => { q.error = null; });
-        broadcastLog('ทำงานต่อ', 'step');
+        queue.filter((item) => item.error === 'หยุดชั่วคราว').forEach((item) => { item.error = null; });
         broadcastQueue();
         if (!isRunning) processQueue();
-    }
-
-    if (message.action === 'RETRY_FAILED') {
-        queue.filter(q => q.status === 'failed').forEach(q => { q.status = 'pending'; q.retryCount = 0; q.error = null; });
-        broadcastQueue();
-        if (!isRunning) processQueue();
+        sendResponse({ ok: true });
+        return false;
     }
 
     if (message.action === 'PROGRESS_UPDATE') {
-        const item = queue.find(q => q.id === message.promptId);
+        const item = queue.find((q) => q.id === message.promptId);
         if (item) {
             item.percent = message.percent;
             item.status = message.status === 'completed' ? 'completed' : 'running';
             broadcastQueue();
         }
+        sendResponse({ ok: true });
+        return false;
     }
 
     if (message.action === 'DOWNLOAD_RESULT' && message.url) {
@@ -594,7 +491,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const folder = message.folder ? `${message.folder}/` : '';
             downloadOptions.filename = folder + message.filename;
         }
-        chrome.downloads.download(downloadOptions).catch(e => broadcastLog(`Download ล้มเหลว: ${e.message}`, 'error'));
+        chrome.downloads.download(downloadOptions).catch((e) => broadcastLog(`Download ล้มเหลว: ${e.message}`, 'error'));
+        sendResponse({ ok: true });
+        return false;
     }
 
     return true;

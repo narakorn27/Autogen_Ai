@@ -1,14 +1,77 @@
 // --- Content Script: Arin Whisk Bot v7.2 ---
-// ไฟล์นี้จัดการเฉพาะ Whisk เท่านั้น — Flow ถูกจัดการโดย content-flow.js
+// ไฟล์นี้จัดการเฉพาะ Google Whisk เท่านั้น
 console.log('[Arin Whisk] Content script loaded ✅');
-
-// ─── Guard: ถ้าเป็นหน้า Flow ออกไปเลย ───
-if (/\/tools\/flow/.test(window.location.pathname)) {
-    // ไม่ทำอะไร — content-flow.js จัดการแทน
-    console.log('[Arin Whisk] Flow page detected — skipping Whisk script');
-} else {
 (function() {
 'use strict';
+
+let isLicensed = false;
+let botGuardOverlay = null;
+
+const ensureBotGuardOverlay = () => {
+    if (botGuardOverlay && document.body?.contains(botGuardOverlay)) return botGuardOverlay;
+
+    const styleId = 'arin-bot-guard-style';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+            #arin-bot-guard {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483646;
+                display: none;
+                align-items: center;
+                justify-content: center;
+                background: rgba(8, 8, 12, 0.38);
+                pointer-events: none;
+            }
+            #arin-bot-guard .arin-bot-guard-card {
+                max-width: 420px;
+                margin: 24px;
+                padding: 18px 20px;
+                border-radius: 16px;
+                border: 1px solid rgba(212, 175, 55, 0.25);
+                background: rgba(14, 14, 20, 0.92);
+                color: #f8fafc;
+                text-align: center;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+                font-family: system-ui, sans-serif;
+            }
+            #arin-bot-guard .arin-bot-guard-title {
+                font-size: 18px;
+                font-weight: 700;
+                color: #f59e0b;
+                margin-bottom: 6px;
+            }
+            #arin-bot-guard .arin-bot-guard-text {
+                font-size: 13px;
+                line-height: 1.5;
+                color: #cbd5e1;
+            }
+        `;
+        document.documentElement.appendChild(style);
+    }
+
+    botGuardOverlay = document.createElement('div');
+    botGuardOverlay.id = 'arin-bot-guard';
+    botGuardOverlay.innerHTML = `
+        <div class="arin-bot-guard-card">
+            <div class="arin-bot-guard-title">บอทกำลังทำงาน</div>
+            <div class="arin-bot-guard-text">กรุณาอย่าคลิก พิมพ์ หรือเปลี่ยนหน้าจอจนกว่าบอทจะทำงานเสร็จ</div>
+        </div>
+    `;
+    (document.body || document.documentElement).appendChild(botGuardOverlay);
+    return botGuardOverlay;
+};
+
+const showBotGuardOverlay = () => {
+    const overlay = ensureBotGuardOverlay();
+    if (overlay) overlay.style.display = 'flex';
+};
+
+const hideBotGuardOverlay = () => {
+    if (botGuardOverlay) botGuardOverlay.style.display = 'none';
+};
 
 // ─── Inject Injected.js ───
 (function injectScript() {
@@ -162,8 +225,17 @@ const ensureReadyToWork = async () => {
 
 // ─── Message Listener (Whisk only) ───
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    // Double-guard: ถ้า flow navigate มาถึง content.js ให้ปฏิเสธ
-    if (/\/tools\/flow/.test(window.location.pathname)) return false;
+    if (message.action === 'LICENSE_OK') {
+        isLicensed = true;
+        sendResponse({ success: true });
+        return false;
+    }
+
+    if (message.action === 'LICENSE_REVOKED') {
+        isLicensed = false;
+        sendResponse({ success: true });
+        return false;
+    }
 
     if (message.action === 'PING') {
         const state = classifyCurrentUrl();
@@ -192,6 +264,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     if (message.action === 'GENERATE') {
+        if (!isLicensed) {
+            sendResponse({ success: false, error: 'License ยังไม่ได้เปิดใช้งาน', needRefresh: false });
+            return true;
+        }
         ensureReadyToWork().then(async () => {
             processGeneration(message)
                 .then(() => sendResponse({ success: true }))
@@ -212,6 +288,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 
     return false;
+});
+
+chrome.storage.local.get('licenseVerified', (data) => {
+    if (data.licenseVerified) {
+        isLicensed = true;
+    }
 });
 
 // ─── Error Classification ───
@@ -466,7 +548,8 @@ const processGeneration = async (data) => {
     sendLog(`เริ่ม processGeneration: ${promptId}`, 'step');
     if (!/tools\/whisk/.test(window.location.pathname)) throw new Error('[OFF_SITE] ไม่ได้อยู่ในหน้า Whisk');
     sendProgress(promptId, 0, 'starting');
-
+    showBotGuardOverlay();
+    try {
     await waitForDOMStable(500, 5000);
     await ensureOnWhiskMainPage();
 
@@ -533,6 +616,9 @@ const processGeneration = async (data) => {
     sendProgress(promptId, 100, 'completed');
     sendLog(`เสร็จสิ้น ${promptId} ✅`, 'success');
     return true;
+    } finally {
+        hideBotGuardOverlay();
+    }
 };
 
 const waitForGenerationComplete = async (promptId, urlBeforeGenerate, timeout = 180000) => {
@@ -577,4 +663,3 @@ const waitForGenerationComplete = async (promptId, urlBeforeGenerate, timeout = 
 
 console.log('[Arin Whisk] Listeners registered ✅');
 })();
-}
