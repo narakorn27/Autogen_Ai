@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS API Test</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            background: #111;
+            color: #eee;
+            margin: 0;
+            padding: 16px;
+        }
+        .wrap {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        input, select, textarea, button {
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 6px;
+            margin-bottom: 14px;
+            padding: 10px;
+            border: 1px solid #444;
+            background: #1a1a1a;
+            color: #eee;
+            border-radius: 6px;
+            font: inherit;
+        }
+        button {
+            cursor: pointer;
+            background: #2a2a2a;
+        }
+        button:hover {
+            background: #333;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .card {
+            border: 1px solid #333;
+            padding: 14px;
+            border-radius: 8px;
+            background: #161616;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #0d0d0d;
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 8px;
+            min-height: 220px;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .small {
+            font-size: 12px;
+            color: #bbb;
+        }
+        @media (max-width: 800px) {
+            .grid, .row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <h1>TTS API Test</h1>
+        <p class="small">หน้านี้เน้นใช้งานล้วน ๆ สำหรับเช็กว่า TTS API ใช้งานได้ไหม และพังที่ chunk ไหน</p>
+
+        <div class="grid">
+            <div class="card">
+                <label>Provider</label>
+                <select id="provider">
+                    <option value="google">Google Cloud TTS</option>
+                </select>
+
+                <div class="row">
+                    <div>
+                        <label>API Key</label>
+                        <input id="api-key" type="password" placeholder="วาง API key">
+                    </div>
+                    <div>
+                        <label>Voice</label>
+                        <input id="voice" value="Charon" placeholder="เช่น Charon / Kore">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div>
+                        <label>Chunk Length</label>
+                        <input id="chunk-size" type="number" value="420">
+                    </div>
+                    <div>
+                        <label>Speaking Rate (Google)</label>
+                        <input id="speaking-rate" type="number" value="0.95" step="0.01">
+                    </div>
+                </div>
+
+                <label>Text</label>
+                <textarea id="text" rows="14">คืนหนึ่งในฤดูฝน ฉันเดินกลับบ้านผ่านซอยเก่าที่แทบไม่มีคนใช้ ถนนเปียกชื้นสะท้อนแสงไฟสีส้มจากเสาไฟที่กระพริบเป็นจังหวะ เสียงฝีเท้าของฉันดังแผ่วอยู่เพียงคนเดียว แต่ทุกครั้งที่หยุดเดิน ฉันกลับได้ยินอีกหนึ่งจังหวะที่หยุดตามเหมือนมีใครกำลังเดินตามอยู่ห่างออกไปไม่กี่ก้าว ฉันพยายามไม่หันกลับไปมอง เพราะจำได้ว่าคนแก่ในละแวกนั้นเคยเตือนว่า ถ้าได้ยินเสียงเท้าตามหลังในซอยนี้ อย่าหันกลับไปจนกว่าจะถึงปากซอย แต่ยิ่งฉันรีบเดิน เสียงนั้นก็ยิ่งใกล้ขึ้น ใกล้ขึ้น จนเหมือนลมหายใจเย็นเฉียบกำลังรินอยู่ตรงต้นคอ และเมื่อฉันเกือบถึงหน้าบ้าน เสียงกระซิบเบา ๆ ก็ดังขึ้นว่า อย่าเปิดประตู เพราะข้างในไม่ใช่บ้านของเจ้าอีกต่อไป</textarea>
+
+                <div class="row">
+                    <button id="btn-split">Preview Split</button>
+                    <button id="btn-test-one">Test First Chunk</button>
+                </div>
+                <div class="row">
+                    <button id="btn-test-all">Test All Chunks</button>
+                    <button id="btn-play-first">Play First Chunk</button>
+                </div>
+                <div class="row">
+                    <button id="btn-play-all">Play All Chunks</button>
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div><strong>Status</strong></div>
+                <div id="status" class="small">Idle</div>
+                <br>
+                <div><strong>Output</strong></div>
+                <pre id="output"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_VOICE_MAP = {
+            Charon: 'th-TH-Chirp3-HD-Charon',
+            Aurus: 'th-TH-Chirp3-HD-Orus',
+            Fenrir: 'th-TH-Chirp3-HD-Fenrir',
+            Algenib: 'th-TH-Chirp3-HD-Algenib',
+            Rasalgethi: 'th-TH-Chirp3-HD-Rasalgethi',
+            Alnilam: 'th-TH-Chirp3-HD-Alnilam',
+            Schedar: 'th-TH-Chirp3-HD-Schedar',
+            Iapetus: 'th-TH-Chirp3-HD-Iapetus',
+            Umbriel: 'th-TH-Chirp3-HD-Umbriel',
+            Algieba: 'th-TH-Chirp3-HD-Algieba',
+            Sadaltegel: 'th-TH-Chirp3-HD-Sadaltager',
+            Achird: 'th-TH-Chirp3-HD-Achird',
+            Kore: 'th-TH-Chirp3-HD-Kore',
+            Gacrux: 'th-TH-Chirp3-HD-Gacrux',
+            Erinome: 'th-TH-Chirp3-HD-Erinome',
+            Despina: 'th-TH-Chirp3-HD-Despina',
+            Achernar: 'th-TH-Chirp3-HD-Achernar',
+            Vindemiatrix: 'th-TH-Chirp3-HD-Vindemiatrix',
+            Sulafat: 'th-TH-Chirp3-HD-Sulafat',
+        };
+
+        function setStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        function setOutput(text) {
+            document.getElementById('output').textContent = typeof text === 'string' ? text : JSON.stringify(text, null, 2);
+        }
+
+        function decodeBase64Audio(base64Data) {
+            const binaryStr = atob(base64Data);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+            return bytes;
+        }
+
+        function pcmToWav(pcmDataView, sampleRate = 24000, numChannels = 1, bitDepth = 16) {
+            const dataLength = pcmDataView.length;
+            const wavBuffer = new ArrayBuffer(44 + dataLength);
+            const view = new DataView(wavBuffer);
+            const byteRate = sampleRate * numChannels * (bitDepth / 8);
+            const blockAlign = numChannels * (bitDepth / 8);
+
+            function writeString(offset, string) {
+                for (let i = 0; i < string.length; i++) view.setUint8(offset + i, string.charCodeAt(i));
+            }
+
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+            new Uint8Array(wavBuffer, 44).set(pcmDataView);
+            return wavBuffer;
+        }
+
+        function splitTtsText(text, maxLength = 420) {
+            const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+            if (!cleanText) return [];
+
+            const sentences = cleanText
+                .replace(/([,;])\s*/g, "$1 ")
+                .replace(/\s+(แต่|แล้ว|เพราะ|เมื่อ|จึง|ซึ่ง|และ|หรือ|หาก|ถ้า|จากนั้น|ทันใดนั้น)\s+/g, ". $1 ")
+                .split(/(?<=[.!?。ๆ])/)
+                .map(part => part.trim())
+                .filter(Boolean);
+
+            const units = sentences.length ? sentences : [cleanText];
+            const chunks = [];
+            let current = "";
+
+            for (const unit of units) {
+                if (unit.length > maxLength) {
+                    const words = unit.replace(/([,;])/g, "$1 ").split(/\s+/).filter(Boolean);
+                    let inner = "";
+                    for (const word of words) {
+                        const candidate = inner ? `${inner} ${word}` : word;
+                        if (candidate.length > maxLength && inner) {
+                            chunks.push(inner.trim());
+                            inner = word;
+                        } else {
+                            inner = candidate;
+                        }
+                    }
+                    if (inner.trim()) {
+                        if (current.trim()) {
+                            chunks.push(current.trim());
+                            current = "";
+                        }
+                        chunks.push(inner.trim());
+                    }
+                    continue;
+                }
+
+                const candidate = current ? `${current} ${unit}` : unit;
+                if (candidate.length > maxLength && current) {
+                    chunks.push(current.trim());
+                    current = unit;
+                } else {
+                    current = candidate;
+                }
+            }
+
+            if (current.trim()) chunks.push(current.trim());
+            return chunks;
+        }
+
+        async function callGoogleTTS(text, apiKey, voice, speakingRate) {
+            const voiceName = GOOGLE_VOICE_MAP[voice] || voice || 'th-TH-Standard-A';
+            const res = await fetch(`https://texttospeech.googleapis.com/v1/text:synthesize?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    input: { text },
+                    voice: { languageCode: 'th-TH', name: voiceName },
+                    audioConfig: {
+                        audioEncoding: 'LINEAR16',
+                        speakingRate
+                    }
+                })
+            });
+
+            const rawText = await res.text();
+            if (!res.ok) {
+                throw new Error(`Google Cloud TTS ${res.status}: ${rawText}`);
+            }
+
+            return JSON.parse(rawText);
+        }
+
+        function getForm() {
+            return {
+                provider: document.getElementById('provider').value,
+                apiKey: document.getElementById('api-key').value.trim(),
+                voice: document.getElementById('voice').value.trim(),
+                text: document.getElementById('text').value,
+                chunkSize: Number(document.getElementById('chunk-size').value || 420),
+                speakingRate: Number(document.getElementById('speaking-rate').value || 0.95),
+            };
+        }
+
+        document.getElementById('btn-split').addEventListener('click', () => {
+            const { text, chunkSize } = getForm();
+            const chunks = splitTtsText(text, chunkSize);
+            setStatus(`Split into ${chunks.length} chunk(s)`);
+            setOutput(chunks.map((chunk, i) => `[${i}] len=${chunk.length}\n${chunk}`).join('\n\n'));
+        });
+
+        document.getElementById('btn-test-one').addEventListener('click', async () => {
+            const { provider, apiKey, voice, text, chunkSize, speakingRate } = getForm();
+            const chunks = splitTtsText(text, chunkSize);
+            if (!apiKey) return setOutput('กรอก API key ก่อน');
+            if (!chunks.length) return setOutput('ไม่มีข้อความ');
+
+            setStatus('Testing first chunk...');
+            try {
+                const first = chunks[0];
+                const result = await callGoogleTTS(first, apiKey, voice, speakingRate);
+                setStatus('First chunk OK');
+                setOutput({
+                    provider,
+                    firstChunkLength: first.length,
+                    responseKeys: Object.keys(result),
+                    sample: JSON.stringify(result).slice(0, 800)
+                });
+            } catch (error) {
+                setStatus('First chunk failed');
+                setOutput(error.stack || error.message);
+            }
+        });
+
+        document.getElementById('btn-test-all').addEventListener('click', async () => {
+            const { provider, apiKey, voice, text, chunkSize, speakingRate } = getForm();
+            const chunks = splitTtsText(text, chunkSize);
+            if (!apiKey) return setOutput('กรอก API key ก่อน');
+            if (!chunks.length) return setOutput('ไม่มีข้อความ');
+
+            const report = [];
+            setStatus(`Testing ${chunks.length} chunk(s)...`);
+
+            for (let i = 0; i < chunks.length; i++) {
+                const chunk = chunks[i];
+                try {
+                    await callGoogleTTS(chunk, apiKey, voice, speakingRate);
+                    report.push({ index: i, ok: true, length: chunk.length, preview: chunk.slice(0, 80) });
+                    setStatus(`Passed chunk ${i + 1}/${chunks.length}`);
+                } catch (error) {
+                    report.push({ index: i, ok: false, length: chunk.length, preview: chunk.slice(0, 80), error: error.message });
+                    setStatus(`Failed at chunk ${i + 1}/${chunks.length}`);
+                    setOutput(report);
+                    return;
+                }
+            }
+
+            setStatus('All chunks passed');
+            setOutput(report);
+        });
+
+        document.getElementById('btn-play-first').addEventListener('click', async () => {
+            const { provider, apiKey, voice, text, chunkSize, speakingRate } = getForm();
+            const chunks = splitTtsText(text, chunkSize);
+            if (!apiKey) return setOutput('กรอก API key ก่อน');
+            if (!chunks.length) return setOutput('ไม่มีข้อความ');
+
+            try {
+                setStatus('Generating first chunk audio...');
+                const first = chunks[0];
+                const result = await callGoogleTTS(first, apiKey, voice, speakingRate);
+                const wavBytes = decodeBase64Audio(result.audioContent);
+
+                const blob = new Blob([wavBytes], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.onended = () => {
+                    URL.revokeObjectURL(url);
+                    setStatus('Playback ended');
+                };
+                await audio.play();
+                setStatus('Playing first chunk');
+                setOutput(`Playing first chunk, len=${first.length}`);
+            } catch (error) {
+                setStatus('Play failed');
+                setOutput(error.stack || error.message);
+            }
+        });
+
+        document.getElementById('btn-play-all').addEventListener('click', async () => {
+            const { provider, apiKey, voice, text, chunkSize, speakingRate } = getForm();
+            const chunks = splitTtsText(text, chunkSize);
+            if (!apiKey) return setOutput('กรอก API key ก่อน');
+            if (!chunks.length) return setOutput('ไม่มีข้อความ');
+
+            try {
+                setStatus(`Generating ${chunks.length} chunk(s)...`);
+                setOutput(chunks.map((chunk, i) => `[${i}] len=${chunk.length} ${chunk.slice(0, 60)}`).join('\n'));
+
+                for (let i = 0; i < chunks.length; i++) {
+                    const chunk = chunks[i];
+                    const result = await callGoogleTTS(chunk, apiKey, voice, speakingRate);
+                    const wavBytes = decodeBase64Audio(result.audioContent);
+
+                    const blob = new Blob([wavBytes], { type: 'audio/wav' });
+                    const url = URL.createObjectURL(blob);
+                    const audio = new Audio(url);
+                    setStatus(`Playing chunk ${i + 1}/${chunks.length}`);
+
+                    await new Promise((resolve, reject) => {
+                        audio.onended = () => {
+                            URL.revokeObjectURL(url);
+                            resolve();
+                        };
+                        audio.onerror = () => {
+                            URL.revokeObjectURL(url);
+                            reject(new Error(`Audio playback failed at chunk ${i}`));
+                        };
+                        audio.play().catch(reject);
+                    });
+                }
+
+                setStatus('Playback all chunks completed');
+            } catch (error) {
+                setStatus('Play all failed');
+                setOutput(error.stack || error.message);
+            }
+        });
+    </script>
+</body>
+</html>

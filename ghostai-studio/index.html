@@ -12,6 +12,7 @@
 
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" type="image/svg+xml" href="./favicon.ico">
 
     <!-- Google Fonts: Mitr (Thai) & Inter (En) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,6 +45,16 @@
                 class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
                 <i data-lucide="radio" class="w-5 h-5 text-gray-500 nav-icon transition-colors"></i>
                 <span class="font-medium tracking-wide">The Ghost Radio</span>
+            </a>
+            <a href="./ouija.html" id="nav-ouija"
+                class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="layout" class="w-5 h-5 text-gray-500 nav-icon transition-colors"></i>
+                <span class="font-medium tracking-wide">Ouija Board</span>
+            </a>
+            <a href="./story-ritual.html" id="nav-ritual"
+                class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="book-open" class="w-5 h-5 text-gray-500 nav-icon transition-colors"></i>
+                <span class="font-medium tracking-wide">Personalized Ritual</span>
             </a>
             <a href="./tarot.html" id="nav-tarot"
                 class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-300 border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
@@ -100,7 +111,7 @@
             <section id="view-generator" class="view-section w-full max-w-6xl mx-auto self-start space-y-6 animate-fade-in">
 
                 <!-- Notice Banner (Mock Mode Notice) -->
-                <div
+                <div id="api-limit-notice"
                     class="glass-panel p-4 rounded-xl border-l-4 border-yellow-600 bg-yellow-900/10 flex items-start gap-4 text-yellow-200 shadow-lg">
                     <div class="p-2 bg-yellow-600/20 rounded-lg shrink-0">
                         <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-500"></i>
@@ -134,8 +145,8 @@
                                 </h3>
                                 
                                 <div class="flex items-center gap-2">
-                                    <label class="text-xs text-gray-400 font-medium tracking-wide">โมเดลนักเขียน:</label>
-                                    <select id="main-ai-model" class="bg-dark-800 border border-dark-600 rounded-lg px-2 py-1 text-sm text-gray-200 focus:outline-none focus:border-crimson-500" onchange="localStorage.setItem('gh_active_ai', this.value); document.getElementById('active-ai').value = this.value;">
+                                    <label class="text-xs text-crimson-400 font-bold tracking-wide">โมเดลนักเขียน:</label>
+                                    <select id="main-ai-model" class="bg-dark-900 border border-dark-600 hover:border-crimson-600 rounded-lg px-2 py-1 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-crimson-500 cursor-pointer shadow-inner transition-colors" onchange="localStorage.setItem('gh_active_ai', this.value);">
                                         <option value="gemini">Gemini (Google)</option>
                                         <option value="groq">Groq (Llama 3)</option>
                                         <option value="openrouter">OpenRouter</option>
@@ -147,7 +158,7 @@
                                 class="w-full bg-dark-900/80 border border-dark-600 rounded-xl p-4 text-gray-200 focus:outline-none focus:border-crimson-600 focus:ring-1 focus:ring-crimson-600 transition-all resize-none placeholder-gray-600 text-sm md:text-base shadow-inner"
                                 placeholder="พิมพ์คีย์เวิร์ด สถานที่ หรือพล็อตเรื่อง... (เช่น โรงเรียนร้าง, ฝนตกหนัก, เสียงเคาะประตู, วิญญาณแค้น)"></textarea>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
                                 <!-- Gore Slider -->
                                 <div>
                                     <label
@@ -161,18 +172,33 @@
                                         oninput="document.getElementById('gore-val').innerText = this.value + '%'">
                                 </div>
 
+                                <!-- Duration Selector -->
+                                <div>
+                                    <label class="text-xs text-crimson-400 font-bold mb-2 block tracking-wide">⏱️ ความยาว (นาที)</label>
+                                    <select id="duration-select" class="w-full bg-dark-900 border border-dark-600 hover:border-crimson-600 rounded-lg px-3 py-1.5 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-crimson-500 cursor-pointer shadow-inner transition-colors">
+                                        <option value="1">1 นาที (~150 คำ)</option>
+                                        <option value="2">2 นาที (~300 คำ)</option>
+                                        <option value="3" selected>3 นาที (~450 คำ)</option>
+                                        <option value="5">5 นาที (~750 คำ)</option>
+                                        <option value="10">10 นาที (~1,500 คำ)</option>
+                                        <option value="20">20 นาที (~3,000 คำ)</option>
+                                        <option value="30">30 นาที (~4,500 คำ)</option>
+                                    </select>
+                                </div>
+
                                 <!-- Style Selector -->
                                 <div>
                                     <label
-                                        class="text-xs text-gray-400 mb-2 block font-medium tracking-wide">สไตล์การเล่าเรื่อง
-                                        (Genre)</label>
+                                        class="text-xs text-gray-400 mb-2 block font-medium tracking-wide">สไตล์การเล่า</label>
                                     <div class="flex flex-wrap gap-2" id="style-selector">
                                         <button
-                                            class="style-btn px-3 py-1.5 rounded-lg border border-crimson-600 bg-crimson-600/20 text-crimson-200 text-xs font-medium transition-all shadow-sm">สยองขวัญ</button>
+                                            class="style-btn px-3 py-1.5 rounded-lg border border-crimson-600 bg-crimson-600/20 text-crimson-200 text-xs font-medium transition-all shadow-sm" data-style="เรื่องเล่า">👤 เรื่องเล่า</button>
                                         <button
-                                            class="style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all">ระทึกขวัญ</button>
+                                            class="style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all" data-style="ข่าว">📰 ข่าว</button>
                                         <button
-                                            class="style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all">ลึกลับ</button>
+                                            class="style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all" data-style="ตำนาน">📜 ตำนาน</button>
+                                        <button
+                                            class="style-btn px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-800 text-gray-400 hover:bg-dark-700 text-xs font-medium transition-all" data-style="พอดแคสต์">🎙️ พอดแคสต์</button>
                                     </div>
                                 </div>
                             </div>
@@ -248,10 +274,10 @@
                         <div class="glass-panel rounded-2xl flex flex-col flex-1">
                             <div class="p-4 border-b border-dark-700 bg-dark-900/50 rounded-t-2xl">
                                 <h3 class="flex items-center gap-2 font-semibold text-gray-200 text-sm tracking-wide">
-                                    <i data-lucide="bot" class="w-4 h-4 text-crimson-500"></i>
-                                    🤖 Gemini TTS
+                                    <i data-lucide="cloud-lightning" class="w-4 h-4 text-blue-400"></i>
+                                    Google Cloud TTS
                                 </h3>
-                                <p class="text-[10px] text-gray-500 mt-1 ml-6">· AI Phonetic Fix + RMS Normalized</p>
+                                <p class="text-[10px] text-gray-500 mt-1 ml-6">· ใช้ Google Cloud TTS Key จาก Settings สำหรับระบบเสียง</p>
                             </div>
                             <div class="p-3 bg-dark-800/80 border-b border-dark-700">
                                 <button id="btn-random-voice" onclick="randomizeVoice()" class="w-full py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 rounded-lg text-xs font-medium flex justify-center items-center gap-2 transition-colors">
@@ -264,80 +290,8 @@
                             </div>
                         </div>
 
-                        <!-- Audio FX Dashboard -->
-                        <div class="glass-panel rounded-2xl border-t border-t-crimson-900 relative overflow-hidden">
-                            <div class="absolute right-0 top-0 opacity-10 pointer-events-none">
-                                <i data-lucide="audio-lines" class="w-32 h-32 text-crimson-500 -mt-6 -mr-6"></i>
-                            </div>
-
-                            <div class="p-4 border-b border-dark-700 bg-dark-900/50">
-                                <h3 class="flex items-center gap-2 font-semibold text-gray-200 text-sm tracking-wide">
-                                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-crimson-500"></i>
-                                    เวทมนตร์เสียงหลอน (Audio FX)
-                                </h3>
-                            </div>
-
-                            <div class="p-5 space-y-5 relative z-10">
-                                <!-- Toggles -->
-                                <div class="space-y-4">
-                                    <div class="flex items-center justify-between group">
-                                        <div>
-                                            <span class="text-sm font-medium text-gray-300 block">เสียงก้อง
-                                                (Reverb)</span>
-                                            <span class="text-[10px] text-gray-500">จำลองเสียงในห้องเช่าร้าง /
-                                                วัดป่า</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="fx-reverb" class="sr-only peer"
-                                                onchange="updateAudioFX()">
-                                            <div
-                                                class="w-10 h-5 bg-dark-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-crimson-700 border border-dark-600 peer-checked:border-crimson-500 peer-checked:after:bg-white">
-                                            </div>
-                                        </label>
-                                    </div>
-                                    <div class="flex items-center justify-between group">
-                                        <div>
-                                            <span class="text-sm font-medium text-gray-300 block">บิดเบือนวิญญาณ
-                                                (Pitch)</span>
-                                            <span
-                                                class="text-[10px] text-gray-500">ดัดเสียงให้ยืดและมีความถี่ต่ำหลอนๆ</span>
-                                        </div>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" id="fx-pitch" class="sr-only peer"
-                                                onchange="updateAudioFX()">
-                                            <div
-                                                class="w-10 h-5 bg-dark-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-crimson-700 border border-dark-600 peer-checked:border-crimson-500 peer-checked:after:bg-white">
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <!-- EQs -->
-                                <div class="pt-4 border-t border-dark-700/50 space-y-4">
-                                    <div>
-                                        <label
-                                            class="flex justify-between text-[11px] text-gray-400 uppercase tracking-widest mb-2 font-semibold">
-                                            <span>Bass (ความถี่ต่ำ)</span>
-                                            <span id="bass-val">+5dB</span>
-                                        </label>
-                                        <input type="range" id="eq-bass" min="-20" max="20" value="5"
-                                            class="w-full h-1 bg-dark-800 rounded-lg appearance-none cursor-pointer"
-                                            oninput="document.getElementById('bass-val').innerText = (this.value > 0 ? '+'+this.value : this.value) + 'dB'; updateAudioFX();">
-                                    </div>
-                                    <div>
-                                        <label
-                                            class="flex justify-between text-[11px] text-gray-400 uppercase tracking-widest mb-2 font-semibold">
-                                            <span>Main Volume</span>
-                                            <span id="vol-val">80%</span>
-                                        </label>
-                                        <input type="range" id="vol-main" min="0" max="100" value="80"
-                                            class="w-full h-1 bg-dark-800 rounded-lg appearance-none cursor-pointer"
-                                            oninput="document.getElementById('vol-val').innerText = this.value + '%'; updateAudioFX();">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
+                    </div>
+                </div>
                     </div>
                 </div>
 
@@ -348,16 +302,21 @@
 
                     <!-- สคริปต์ -->
                     <div class="glass-panel p-6 rounded-2xl">
-                        <div class="flex justify-between items-center mb-4 border-b border-dark-700 pb-3">
+                        <div class="flex justify-between items-center mb-4 border-b border-dark-700 pb-3 gap-3 flex-wrap">
                             <h3 class="flex items-center gap-2 font-semibold text-lg text-crimson-500 tracking-wide">
                                 <i data-lucide="scroll-text" class="w-5 h-5"></i> สคริปต์
                             </h3>
-                            <button onclick="copyText('script-display')" class="text-xs bg-dark-800 border border-dark-600 hover:border-crimson-500 hover:text-crimson-400 px-3 py-1.5 rounded-md flex items-center gap-1 transition-all">
-                                <i data-lucide="copy" class="w-3 h-3"></i> copy
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <button id="btn-enhance-script" onclick="enhanceScriptEditor()" class="text-xs bg-dark-800 border border-dark-600 hover:border-yellow-500 hover:text-yellow-300 px-3 py-1.5 rounded-md flex items-center gap-1 transition-all">
+                                    <i data-lucide="sparkles" class="w-3 h-3"></i> AI Enhance
+                                </button>
+                                <button onclick="copyText('script-display')" class="text-xs bg-dark-800 border border-dark-600 hover:border-crimson-500 hover:text-crimson-400 px-3 py-1.5 rounded-md flex items-center gap-1 transition-all">
+                                    <i data-lucide="copy" class="w-3 h-3"></i> copy
+                                </button>
+                            </div>
                         </div>
-                        <div id="script-display" class="text-gray-300 leading-relaxed text-sm whitespace-pre-line max-h-[300px] overflow-y-auto pr-2">
-                        </div>
+                        <p class="text-[11px] text-gray-500 mb-3">แก้คำในสคริปต์ได้โดยตรง แล้วระบบเสียงจะอ่านจากข้อความล่าสุดในช่องนี้</p>
+                        <textarea id="script-display" oninput="syncScriptEditor()" class="w-full bg-dark-900/80 border border-dark-700 rounded-xl p-4 text-gray-300 leading-relaxed text-sm whitespace-pre-wrap min-h-[320px] max-h-[520px] overflow-y-auto resize-y focus:outline-none focus:border-crimson-600 focus:ring-1 focus:ring-crimson-600 transition-all"></textarea>
                     </div>
 
                     <!-- YouTube Metadata -->
@@ -481,6 +440,99 @@
                             </div>
                             <div id="export-status" class="text-xs text-gray-500 text-center font-mono">
                                 <span class="flex items-center justify-center gap-1"><i data-lucide="lightbulb" class="w-3 h-3 text-yellow-600"></i> Export with FX จะ bake EQ + Ambient + Master Vol ลงใน WAV</span>
+                            </div>
+                        </div>
+
+                        <!-- Audio FX Dashboard (Post-Gen) -->
+                        <div class="glass-panel rounded-2xl border-t border-t-crimson-900 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 opacity-10 pointer-events-none">
+                                <i data-lucide="audio-lines" class="w-32 h-32 text-crimson-500 -mt-6 -mr-6"></i>
+                            </div>
+
+                            <div class="p-4 border-b border-dark-700 bg-dark-900/50">
+                                <h3 class="flex items-center gap-2 font-semibold text-gray-200 text-sm tracking-wide uppercase">
+                                    <i data-lucide="sliders-horizontal" class="w-4 h-4 text-crimson-500"></i>
+                                    Audio FX (Realtime)
+                                </h3>
+                            </div>
+
+                            <div class="p-5 space-y-4 relative z-10">
+                                <!-- 2x2 Toggle Grid -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <!-- Reverb -->
+                                    <label for="fx-reverb" class="fx-card group cursor-pointer rounded-xl border border-dark-600 p-4 flex items-center justify-between transition-all duration-300 hover:border-purple-500/50 has-[:checked]:border-purple-500 has-[:checked]:bg-gradient-to-br has-[:checked]:from-purple-900/40 has-[:checked]:to-purple-800/20 has-[:checked]:shadow-[0_0_20px_rgba(147,51,234,0.15)]">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="text-lg">🏚️</span>
+                                            <div class="min-w-0">
+                                                <span class="text-sm font-semibold text-gray-200 block">Reverb</span>
+                                                <span class="text-[10px] text-gray-500 block">เสียงก้องวัดร้าง</span>
+                                            </div>
+                                        </div>
+                                        <div class="relative shrink-0">
+                                            <input type="checkbox" id="fx-reverb" class="sr-only peer" onchange="updateAudioFX()">
+                                            <div class="w-10 h-5 bg-dark-800 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:bg-white border border-dark-600 peer-checked:border-purple-400"></div>
+                                        </div>
+                                    </label>
+
+                                    <!-- Pitch Low -->
+                                    <label for="fx-pitch" class="fx-card group cursor-pointer rounded-xl border border-dark-600 p-4 flex items-center justify-between transition-all duration-300 hover:border-purple-500/50 has-[:checked]:border-purple-500 has-[:checked]:bg-gradient-to-br has-[:checked]:from-purple-900/40 has-[:checked]:to-purple-800/20 has-[:checked]:shadow-[0_0_20px_rgba(147,51,234,0.15)]">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="text-lg">🔻</span>
+                                            <div class="min-w-0">
+                                                <span class="text-sm font-semibold text-gray-200 block">Pitch Low</span>
+                                                <span class="text-[10px] text-gray-500 block">เสียงต่ำน่ากลัว</span>
+                                            </div>
+                                        </div>
+                                        <div class="relative shrink-0">
+                                            <input type="checkbox" id="fx-pitch" class="sr-only peer" onchange="updateAudioFX()">
+                                            <div class="w-10 h-5 bg-dark-800 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:bg-white border border-dark-600 peer-checked:border-purple-400"></div>
+                                        </div>
+                                    </label>
+
+                                    <!-- Whisper -->
+                                    <label for="fx-whisper" class="fx-card group cursor-pointer rounded-xl border border-dark-600 p-4 flex items-center justify-between transition-all duration-300 hover:border-purple-500/50 has-[:checked]:border-purple-500 has-[:checked]:bg-gradient-to-br has-[:checked]:from-purple-900/40 has-[:checked]:to-purple-800/20 has-[:checked]:shadow-[0_0_20px_rgba(147,51,234,0.15)]">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="text-lg">🕯️</span>
+                                            <div class="min-w-0">
+                                                <span class="text-sm font-semibold text-gray-200 block">Whisper</span>
+                                                <span class="text-[10px] text-gray-500 block">เสียงกระซิบ</span>
+                                            </div>
+                                        </div>
+                                        <div class="relative shrink-0">
+                                            <input type="checkbox" id="fx-whisper" class="sr-only peer" onchange="updateAudioFX()">
+                                            <div class="w-10 h-5 bg-dark-800 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:bg-white border border-dark-600 peer-checked:border-purple-400"></div>
+                                        </div>
+                                    </label>
+
+                                    <!-- Static -->
+                                    <label for="fx-static" class="fx-card group cursor-pointer rounded-xl border border-dark-600 p-4 flex items-center justify-between transition-all duration-300 hover:border-purple-500/50 has-[:checked]:border-purple-500 has-[:checked]:bg-gradient-to-br has-[:checked]:from-purple-900/40 has-[:checked]:to-purple-800/20 has-[:checked]:shadow-[0_0_20px_rgba(147,51,234,0.15)]">
+                                        <div class="flex items-center gap-3 min-w-0">
+                                            <span class="text-lg">📻</span>
+                                            <div class="min-w-0">
+                                                <span class="text-sm font-semibold text-gray-200 block">Static</span>
+                                                <span class="text-[10px] text-gray-500 block">วิทยุเก่า</span>
+                                            </div>
+                                        </div>
+                                        <div class="relative shrink-0">
+                                            <input type="checkbox" id="fx-static" class="sr-only peer" onchange="updateAudioFX()">
+                                            <div class="w-10 h-5 bg-dark-800 rounded-full peer peer-checked:bg-purple-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:bg-white border border-dark-600 peer-checked:border-purple-400"></div>
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- Volume -->
+                                <div class="pt-3 border-t border-dark-700/50">
+                                    <div>
+                                        <label
+                                            class="flex justify-between text-[11px] text-gray-400 uppercase tracking-widest mb-2 font-semibold">
+                                            <span>Main Volume</span>
+                                            <span id="vol-val">80%</span>
+                                        </label>
+                                        <input type="range" id="vol-main" min="0" max="100" value="80"
+                                            class="w-full h-1 bg-dark-800 rounded-lg appearance-none cursor-pointer"
+                                            oninput="document.getElementById('vol-val').innerText = this.value + '%'; updateAudioFX();">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -740,6 +792,15 @@
         // Init Icons
         lucide.createIcons();
 
+        // Auto-hide API Limit Notice if keys exist
+        window.addEventListener('DOMContentLoaded', () => {
+            const hasGemini = localStorage.getItem('gh_api_gemini');
+            const hasTTS = localStorage.getItem('gh_api_tts');
+            if (hasGemini || hasTTS) {
+                document.getElementById('api-limit-notice')?.classList.add('hidden');
+            }
+        });
+
         // ------------------------------------------------------------------
         // [PHASE 1] SPA ROUTING & UI INTERACTIONS
         // ------------------------------------------------------------------
@@ -811,7 +872,7 @@
         // ------------------------------------------------------------------
         function initVoiceList() {
             const listContainer = document.getElementById('voice-list');
-            listContainer.innerHTML = GEMINI_VOICES.map((v, i) => `
+            listContainer.innerHTML = TTS_VOICES.map((v, i) => `
                 <div class="voice-opt p-2 border ${i===0 ? 'border-crimson-600 bg-crimson-900/20' : 'border-dark-600 bg-dark-800/50'} rounded-lg cursor-pointer flex items-center gap-3 transition-colors group" data-voice="${v.id}" data-selected="${i===0 ? 'true' : 'false'}">
                     <div class="w-8 h-8 rounded justify-center items-center flex shrink-0 text-lg ${i===0 ? '' : 'grayscale'}">
                         ${v.gender === 'M' ? '♂' : '♀'}
@@ -853,22 +914,47 @@
         }
 
         function randomizeVoice() {
-            const opts = document.querySelectorAll('.voice-opt');
-            const randomIdx = Math.floor(Math.random() * opts.length);
-            opts[randomIdx].click();
-            opts[randomIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const opts = [...document.querySelectorAll('.voice-opt')];
+            if (opts.length === 0) return;
+
+            const r1 = Math.floor(Math.random() * opts.length);
+            opts[r1].click();
+
+            // Pick a second voice for Podcast
+            let r2 = Math.floor(Math.random() * opts.length);
+            while (r2 === r1 && opts.length > 1) r2 = Math.floor(Math.random() * opts.length);
+            
+            const voice2Id = opts[r2].getAttribute('data-voice');
+            localStorage.setItem('gh_secondary_voice', voice2Id);
+            
+            // UI Feedback
+            const currentStyle = document.querySelector('.style-btn.text-crimson-200')?.getAttribute('data-style') || 'เรื่องเล่า';
+            if (currentStyle === 'พอดแคสต์') {
+                showToast(`สุ่มเสียงคู่สำเร็จ: ${opts[r1].getAttribute('data-voice')} & ${voice2Id}`, 'info');
+            } else {
+                showToast(`สุ่มเสียงสำเร็จ: ${opts[r1].getAttribute('data-voice')}`, 'info');
+            }
+            updateMediaButtonLabel();
         }
 
         function getSelectedVoiceId() {
-            return document.querySelector('.voice-opt[data-selected="true"]')?.getAttribute('data-voice') || 'Charon';
+            const v1 = document.querySelector('.voice-opt[data-selected="true"]')?.getAttribute('data-voice') || 'Charon';
+            const v2 = localStorage.getItem('gh_secondary_voice') || 'Kore';
+            return { v1, v2 };
         }
 
         function updateMediaButtonLabel() {
             const btn = document.getElementById('btn-gen-media');
             if (!btn) return;
 
-            const voiceId = getSelectedVoiceId();
-            btn.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5 text-crimson-500 group-hover:animate-pulse"></i> <span>🎨 สร้างภาพ + เสียง [${voiceId}]</span>`;
+            const voices = getSelectedVoiceId();
+            const currentStyle = document.querySelector('.style-btn.text-crimson-200')?.getAttribute('data-style') || 'เรื่องเล่า';
+            
+            if (currentStyle === 'พอดแคสต์') {
+                btn.innerHTML = `<i data-lucide="mic-2" class="w-5 h-5 text-crimson-500 group-hover:animate-pulse"></i> <span>🎙️ สุ่มเสียงคู่ [${voices.v1} & ${voices.v2}]</span>`;
+            } else {
+                btn.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5 text-crimson-500 group-hover:animate-pulse"></i> <span>🎨 สร้างภาพ + เสียง [${voices.v1}]</span>`;
+            }
             lucide.createIcons();
         }
 
@@ -880,33 +966,33 @@
             });
 
             const profile = {
-                useReverb: true,
-                pitchRate: 0.94,
-                speechPitch: 0.75,
-                speechRate: 0.9
+                useReverb: false,
+                pitchRate: 1.0,
+                speechPitch: 1.0,
+                speechRate: 1.0
             };
 
             if (genre === 'ระทึกขวัญ') {
                 profile.useReverb = false;
-                profile.pitchRate = 0.98;
-                profile.speechPitch = 0.9;
+                profile.pitchRate = 1.0;
+                profile.speechPitch = 1.0;
                 profile.speechRate = 1.0;
             } else if (genre === 'ลึกลับ') {
-                profile.useReverb = true;
-                profile.pitchRate = 0.9;
-                profile.speechPitch = 0.65;
-                profile.speechRate = 0.86;
+                profile.useReverb = false;
+                profile.pitchRate = 1.0;
+                profile.speechPitch = 1.0;
+                profile.speechRate = 1.0;
             }
 
             if (gore >= 70) {
-                profile.useReverb = true;
-                profile.pitchRate = Math.min(profile.pitchRate, 0.88);
-                profile.speechPitch = Math.min(profile.speechPitch, 0.55);
-                profile.speechRate = Math.min(profile.speechRate, 0.82);
+                profile.useReverb = false;
+                profile.pitchRate = 1.0;
+                profile.speechPitch = 1.0;
+                profile.speechRate = 1.0;
             } else if (gore <= 30) {
-                profile.pitchRate = Math.max(profile.pitchRate, 0.97);
-                profile.speechPitch = Math.max(profile.speechPitch, 0.88);
-                profile.speechRate = Math.max(profile.speechRate, 0.98);
+                profile.pitchRate = 1.0;
+                profile.speechPitch = 1.0;
+                profile.speechRate = 1.0;
             }
 
             return profile;
@@ -914,7 +1000,7 @@
 
         // Initialize voice list on load
         window.addEventListener('DOMContentLoaded', () => {
-            if(typeof GEMINI_VOICES !== 'undefined') initVoiceList();
+            if(typeof TTS_VOICES !== 'undefined') initVoiceList();
             updateMediaButtonLabel();
             
             // Sync active AI model to dropdown
@@ -966,7 +1052,7 @@
             document.getElementById('api-groq').value = localStorage.getItem('gh_api_groq') || '';
             document.getElementById('api-openrouter').value = localStorage.getItem('gh_api_openrouter') || '';
             document.getElementById('api-tts').value = localStorage.getItem('gh_api_tts') || ''; // <--- Restored
-            document.getElementById('active-ai-select').value = localStorage.getItem('gh_active_ai') || 'gemini';
+            if(document.getElementById('main-ai-model')) document.getElementById('main-ai-model').value = localStorage.getItem('gh_active_ai') || 'gemini';
             
             // Initialize Visual effects
             if(typeof initGhostOverlay === 'function') initGhostOverlay();
@@ -1119,21 +1205,26 @@
 
             // Stop playing voice if any
             if (window.speechSynthesis) window.speechSynthesis.cancel();
+            if (typeof window.stopGhostPlayback === 'function') window.stopGhostPlayback();
             updateTTSBtn(false);
 
             try {
-                // Get selected genre
-                let genre = 'สยองขวัญ';
+                // Get selected genre/style
+                let style = 'เรื่องเล่า';
                 document.querySelectorAll('.style-btn').forEach(b => {
-                    if (b.classList.contains('text-crimson-200')) genre = b.innerText;
+                    if (b.classList.contains('text-crimson-200')) {
+                        style = b.getAttribute('data-style') || b.innerText;
+                    }
                 });
+
+                const duration = document.getElementById('duration-select').value;
                 const gore = document.getElementById('gore-slider').value;
 
-                // Call external generator (it handles fallback automatically)
-                let storyText = await generateGhostStory(keyword, gore, genre);
+                // Call external generator
+                let storyText = await generateGhostStory(keyword, gore, 'สยองขวัญ', duration, style);
                 
                 // Clean up JUMP_SCARE markers for UI typing, we will trigger them during speech instead
-                const cleanStory = storyText.replace(/\[JUMP_SCARE\]/g, '');
+                const cleanStory = storyText.replace(/\[JUMP_SCARE\]/g, '').trim();
 
                 document.getElementById('story-loading').classList.add('hidden');
                 const contentDiv = document.getElementById('story-content');
@@ -1160,7 +1251,7 @@
 
                         // === POST-GEN: แสดง Script + Metadata + Media ===
                         currentStoryText = cleanStory;
-                        document.getElementById('script-display').innerText = cleanStory;
+                        document.getElementById('script-display').value = cleanStory;
                         document.getElementById('post-gen-content').classList.remove('hidden');
                         document.getElementById('media-assets').classList.add('hidden'); // ซ่อน media ไว้ก่อน
                         lucide.createIcons();
@@ -1185,6 +1276,67 @@
 
         let currentUtterance;
         let isPlaying = false;
+        let ttsPlaybackToken = 0;
+
+        function splitNarrationChunks(text, maxLength = 420) {
+            const cleaned = (text || '').replace(/\[JUMP_SCARE\]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!cleaned) return [];
+
+            const sentences = cleaned.split(/(?<=[.!?。ๆ])\s+/).filter(Boolean);
+            if (!sentences.length) sentences.push(cleaned);
+
+            const chunks = [];
+            let current = '';
+
+            for (const sentence of sentences) {
+                if (sentence.length > maxLength) {
+                    const words = sentence.split(/\s+/).filter(Boolean);
+                    let inner = '';
+
+                    for (const word of words) {
+                        const innerCandidate = inner ? `${inner} ${word}` : word;
+                        if (innerCandidate.length > maxLength && inner) {
+                            chunks.push(inner.trim());
+                            inner = word;
+                        } else {
+                            inner = innerCandidate;
+                        }
+                    }
+
+                    if (inner.trim()) {
+                        if (current.trim()) {
+                            chunks.push(current.trim());
+                            current = '';
+                        }
+                        chunks.push(inner.trim());
+                    }
+                    continue;
+                }
+
+                const candidate = current ? `${current} ${sentence}` : sentence;
+                if (candidate.length > maxLength && current) {
+                    chunks.push(current.trim());
+                    current = sentence;
+                } else {
+                    current = candidate;
+                }
+            }
+
+            if (current.trim()) chunks.push(current.trim());
+            return chunks;
+        }
+
+        function waitForAudioSource(source) {
+            return new Promise((resolve) => {
+                const previousOnEnded = source.onended;
+                source.onended = (...args) => {
+                    if (typeof previousOnEnded === 'function') {
+                        previousOnEnded.apply(source, args);
+                    }
+                    resolve();
+                };
+            });
+        }
 
         function updateTTSBtn(playing) {
             isPlaying = playing;
@@ -1205,55 +1357,84 @@
             lucide.createIcons();
         }
 
+        function setTTSPreparingState() {
+            const btnText = document.getElementById('tts-text');
+            const icon = document.getElementById('tts-icon');
+            const btn = document.getElementById('btn-play-tts');
+
+            isPlaying = true;
+            btnText.innerText = "กำลังเตรียมเสียง...";
+            icon.setAttribute('data-lucide', 'loader-circle');
+            btn.classList.replace('bg-crimson-700', 'bg-dark-600');
+            btn.classList.remove('crimson-glow');
+            lucide.createIcons();
+        }
+
         async function playMockTTS() {
             // Toggle Stop
             if (isPlaying) {
                 if (window.speechSynthesis) window.speechSynthesis.cancel();
+                if (typeof window.stopGhostPlayback === 'function') window.stopGhostPlayback();
+                ttsPlaybackToken++;
                 updateTTSBtn(false);
                 return;
             }
 
             // Get text
-            let text = document.getElementById('story-content').innerText;
+            let text = (currentStoryText || document.getElementById('story-content').innerText || '').trim();
             if (!text || text.length < 5) return;
 
-            updateTTSBtn(true);
+            const playbackToken = ++ttsPlaybackToken;
             
             // Web Audio Engine Path
             if (typeof synthesizeCloudTTS !== 'undefined') {
-                // Determine selected voice from UI
-                const voiceId = getSelectedVoiceId();
+                // Determine selected voices
+                const voices = getSelectedVoiceId();
+                setTTSPreparingState();
                 
                 // Jump Scare fx hook randomly
                 setTimeout(() => { if(Math.random() > 0.5 && typeof triggerJumpScare !== 'undefined') triggerJumpScare(); }, 5000);
 
-                const buffer = await synthesizeCloudTTS(text, voiceId);
-                
-                if (buffer) {
-                    const profile = getNarrationProfile();
-                    const useReverb = document.getElementById('fx-reverb').checked || profile.useReverb;
-                    const isPitch = document.getElementById('fx-pitch').checked;
-                    const pitchVal = isPitch ? Math.min(profile.pitchRate, 0.8) : profile.pitchRate;
-                    
-                    const source = await playGhostAudio(buffer, useReverb, pitchVal);
-                    if(source) {
-                        source.onended = () => updateTTSBtn(false);
+                try {
+                    const buffer = await synthesizeCloudTTS(text, voices.v1);
+                    if (!isPlaying || playbackToken !== ttsPlaybackToken) {
+                        updateTTSBtn(false);
                         return;
                     }
+
+                    if (buffer) {
+                        updateTTSBtn(true);
+
+                        const useReverb = document.getElementById('fx-reverb').checked;
+                        const isPitch = document.getElementById('fx-pitch').checked;
+                        const pitchVal = isPitch ? 0.96 : 1.0;
+                        const source = await playGhostAudio(buffer, useReverb, pitchVal);
+
+                        if (source) {
+                            await waitForAudioSource(source);
+                        }
+                    }
+                } catch (err) {
+                    console.error('[GhostAI] TTS playback failed:', err);
+                }
+
+                if (playbackToken === ttsPlaybackToken) {
+                    updateTTSBtn(false);
+                    return;
                 }
             }
 
             // Fallback back to Speech API
+            updateTTSBtn(true);
             if (window.speechSynthesis) {
                 window.speechSynthesis.cancel();
                 currentUtterance = new SpeechSynthesisUtterance(text);
                 currentUtterance.lang = 'th-TH';
                 
-                const profile = getNarrationProfile();
                 const isPitch = document.getElementById('fx-pitch').checked;
                 const mainVol = document.getElementById('vol-main').value;
-                currentUtterance.pitch = isPitch ? Math.min(profile.speechPitch, 0.5) : profile.speechPitch;
-                currentUtterance.rate = isPitch ? Math.min(profile.speechRate, 0.8) : profile.speechRate;
+                currentUtterance.pitch = isPitch ? 0.92 : 1.0;
+                currentUtterance.rate = isPitch ? 0.98 : 1.0;
                 currentUtterance.volume = mainVol / 100;
 
                 currentUtterance.onend = () => { updateTTSBtn(false) };
@@ -1265,11 +1446,22 @@
         }
 
         function updateAudioFX() {
+            if (typeof window.applyGhostRealtimeFX === 'function') {
+                window.applyGhostRealtimeFX();
+                return;
+            }
             const mainVol = document.getElementById('vol-main').value;
             // Native Web Audio master gain control
-            if (typeof masterGain !== 'undefined') {
+            if (typeof masterGain !== 'undefined' && typeof audioCtx !== 'undefined') {
                 masterGain.gain.setValueAtTime(mainVol / 100, audioCtx.currentTime);
             }
+            // Log active FX (effects จะถูกใช้ตอน play/export)
+            const activeFx = [];
+            if (document.getElementById('fx-reverb')?.checked) activeFx.push('Reverb');
+            if (document.getElementById('fx-pitch')?.checked) activeFx.push('Pitch Low');
+            if (document.getElementById('fx-whisper')?.checked) activeFx.push('Whisper');
+            if (document.getElementById('fx-static')?.checked) activeFx.push('Static');
+            console.log('[GhostAI FX]', activeFx.length ? `Active: ${activeFx.join(', ')}` : 'No FX active');
         }
 
         // ------------------------------------------------------------------
@@ -1288,13 +1480,60 @@
         function copyText(elementId) {
             const el = document.getElementById(elementId);
             if (!el) return;
-            const text = el.innerText;
+            const text = typeof el.value === 'string' ? el.value : el.innerText;
             navigator.clipboard.writeText(text).then(() => {
                 // Flash feedback
                 const orig = el.style.border;
                 el.style.border = '1px solid #22c55e';
                 setTimeout(() => { el.style.border = orig; }, 800);
             });
+        }
+
+        function syncScriptEditor() {
+            const el = document.getElementById('script-display');
+            if (!el) return;
+            currentStoryText = (el.value || '').trim();
+        }
+
+        async function enhanceScriptEditor() {
+            const btn = document.getElementById('btn-enhance-script');
+            const editor = document.getElementById('script-display');
+            if (!editor) return;
+
+            const sourceText = (editor.value || '').trim();
+            if (!sourceText) return;
+
+            const originalHtml = btn?.innerHTML || '';
+            if (btn) {
+                btn.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Enhancing...';
+                btn.classList.add('pointer-events-none', 'opacity-70');
+                lucide.createIcons();
+            }
+
+            try {
+                if (typeof enhanceGeneratedScript !== 'function') {
+                    throw new Error('AI enhance ยังไม่พร้อมใช้งาน');
+                }
+
+                const enhanced = await enhanceGeneratedScript(sourceText);
+                if (enhanced && enhanced.trim()) {
+                    editor.value = enhanced.trim();
+                    syncScriptEditor();
+                    const contentDiv = document.getElementById('story-content');
+                    if (contentDiv) {
+                        contentDiv.innerHTML = currentStoryText.replace(/\n/g, '<br>');
+                    }
+                }
+            } catch (err) {
+                console.error('[GhostAI] Enhance Script Error:', err);
+                alert(err.message || 'AI Enhance Script ล้มเหลว');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('pointer-events-none', 'opacity-70');
+                    lucide.createIcons();
+                }
+            }
         }
 
         // สร้าง YouTube Metadata จาก Story
@@ -1581,25 +1820,40 @@
 
             if (!currentStoryText) return;
             previewPlaying = true;
-            statusEl.innerText = 'กำลังเล่น...';
-            iconEl.setAttribute('data-lucide', 'square');
+            statusEl.innerText = 'กำลัง Synthesize เสียง...';
+            iconEl.setAttribute('data-lucide', 'loader');
             lucide.createIcons();
 
             // ดึง Voice ID จาก UI
-            const voiceId = getSelectedVoiceId();
+            const voices = getSelectedVoiceId();
 
-            const previewText = getPreviewSnippet(currentStoryText);
-            const previewCacheKey = `${voiceId}::${previewText}`;
-            let buffer = voiceCache[previewCacheKey];
+            // ✅ ใช้ทั้งเรื่อง ไม่ใช่ snippet
+            const fullText = currentStoryText;
+            const cacheKey = `${voices.v1}-${voices.v2}::${fullText.length}`;
+            let buffer = voiceCache[cacheKey];
             if (!buffer) {
-                buffer = await synthesizeCloudTTS(previewText, voiceId);
-                if (buffer) voiceCache[previewCacheKey] = buffer;
+                try {
+                    statusEl.innerText = 'กำลัง Synthesize เสียง...';
+                    buffer = await synthesizeCloudTTS(fullText, voices.v1, voices.v2);
+                    if (buffer) voiceCache[cacheKey] = buffer;
+                } catch (err) {
+                    console.error('[GhostAI] TTS Error:', err);
+                    statusEl.innerText = `❌ ${err.message || 'TTS ล้มเหลว'}`;
+                    iconEl.setAttribute('data-lucide', 'play');
+                    lucide.createIcons();
+                    previewPlaying = false;
+                    return;
+                }
             }
+
             if (buffer) {
-                const profile = getNarrationProfile();
-                const useReverb = document.getElementById('fx-reverb')?.checked || profile.useReverb;
+                statusEl.innerText = 'กำลังเล่น...';
+                iconEl.setAttribute('data-lucide', 'square');
+                lucide.createIcons();
+
+                const useReverb = document.getElementById('fx-reverb')?.checked ?? false;
                 const isPitch = document.getElementById('fx-pitch')?.checked ?? false;
-                const pitchVal = isPitch ? Math.min(profile.pitchRate, 0.8) : profile.pitchRate;
+                const pitchVal = isPitch ? 0.96 : 1.0;
 
                 previewSource = await playGhostAudio(buffer, useReverb, pitchVal);
                 if (previewSource) {
@@ -1615,12 +1869,11 @@
 
             // Fallback Web Speech
             if (window.speechSynthesis) {
-                const u = new SpeechSynthesisUtterance(previewText);
+                const u = new SpeechSynthesisUtterance(fullText);
                 u.lang = 'th-TH';
-                const profile = getNarrationProfile();
                 const isPitch = document.getElementById('fx-pitch')?.checked ?? false;
-                u.pitch = isPitch ? Math.min(profile.speechPitch, 0.5) : profile.speechPitch;
-                u.rate = isPitch ? Math.min(profile.speechRate, 0.8) : profile.speechRate;
+                u.pitch = isPitch ? 0.92 : 1.0;
+                u.rate = isPitch ? 0.98 : 1.0;
                 u.onend = () => {
                     previewPlaying = false;
                     statusEl.innerText = 'หยุดอยู่';

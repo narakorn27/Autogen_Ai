@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostAI Studio - กระดานผีถ้วยแก้วไทย</title>
+    <link href="./output.css" rel="stylesheet">
+    <link rel="stylesheet" href="./styles/horror-theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --board-width: 980px;
+            --board-height: 760px;
+            --board-cols: 10;
+            --board-rows: 10;
+            --paper: #d5b17a;
+            --paper-light: #e5c995;
+            --paper-dark: #bb8d55;
+            --ink: #1e1107;
+            --wood: #6a4325;
+            --wood-dark: #2f170d;
+            --accent: #a3271e;
+        }
+
+        body {
+            font-family: "Noto Serif Thai", serif;
+        }
+
+        .ritual-page {
+            background:
+                radial-gradient(circle at top, rgba(148, 41, 32, 0.16), transparent 30%),
+                linear-gradient(180deg, rgba(24, 10, 10, 0.96) 0%, rgba(6, 4, 4, 1) 100%);
+        }
+
+        .board-shell {
+            max-width: calc(var(--board-width) + 54px);
+            margin: 0 auto 1.5rem;
+            padding: 1rem;
+            border-radius: 28px;
+            background: linear-gradient(145deg, rgba(87, 41, 21, 0.76), rgba(22, 9, 8, 0.98));
+            border: 1px solid rgba(229, 201, 149, 0.22);
+            box-shadow:
+                0 28px 70px rgba(0, 0, 0, 0.5),
+                inset 0 0 0 1px rgba(255, 239, 209, 0.08);
+        }
+
+        .ritual-caption {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            max-width: var(--board-width);
+            margin: 0 auto 1rem;
+            padding: 0.85rem 1rem;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(42, 16, 11, 0.86), rgba(15, 8, 8, 0.95));
+            border: 1px solid rgba(229, 201, 149, 0.16);
+            color: rgba(247, 230, 198, 0.88);
+        }
+
+        .ritual-caption strong {
+            color: #fde9bf;
+            font-weight: 700;
+        }
+
+        .ritual-caption span {
+            display: block;
+            margin-top: 0.18rem;
+            font-size: 0.84rem;
+            color: rgba(234, 205, 153, 0.7);
+        }
+
+        .ouija-container {
+            position: relative;
+            width: min(100%, var(--board-width));
+            height: var(--board-height);
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 26px;
+            user-select: none;
+            background:
+                linear-gradient(180deg, rgba(74, 47, 27, 0.5), rgba(39, 19, 11, 0.62)),
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(92, 58, 33, 0.95) 0px,
+                    rgba(92, 58, 33, 0.95) 58px,
+                    rgba(120, 77, 45, 0.92) 58px,
+                    rgba(120, 77, 45, 0.92) 116px
+                );
+            border: 12px solid rgba(35, 18, 10, 0.86);
+            box-shadow:
+                0 0 0 2px rgba(230, 200, 145, 0.18),
+                0 24px 54px rgba(0, 0, 0, 0.52);
+        }
+
+        .ouija-container::before {
+            content: "";
+            position: absolute;
+            inset: 12px;
+            border-radius: 16px;
+            border: 2px solid rgba(48, 26, 12, 0.72);
+            pointer-events: none;
+        }
+
+        .board-grid {
+            position: absolute;
+            inset: 30px;
+            display: grid;
+            grid-template-columns: repeat(var(--board-cols), minmax(0, 1fr));
+            grid-template-rows: repeat(var(--board-rows), minmax(0, 1fr));
+            background:
+                radial-gradient(circle at 30% 20%, rgba(255, 238, 199, 0.14), transparent 30%),
+                linear-gradient(180deg, var(--paper-light), var(--paper));
+            border: 2px solid rgba(65, 36, 18, 0.86);
+            box-shadow: inset 0 0 34px rgba(93, 56, 29, 0.18);
+        }
+
+        .board-cell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.35rem 0.25rem;
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: var(--ink);
+            text-shadow: 0 1px 0 rgba(255, 248, 229, 0.12);
+            border-right: 1.5px solid rgba(63, 35, 17, 0.72);
+            border-bottom: 1.5px solid rgba(63, 35, 17, 0.72);
+            background: rgba(255, 244, 217, 0.04);
+            transition: transform 0.22s ease, background-color 0.22s ease, box-shadow 0.22s ease, color 0.22s ease;
+        }
+
+        .board-cell--small {
+            font-size: 1.65rem;
+        }
+
+        .board-cell--word {
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+
+        .board-cell--center {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background:
+                linear-gradient(180deg, rgba(247, 224, 180, 0.9), rgba(230, 196, 142, 0.9));
+        }
+
+        .board-cell--wide {
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+
+        .board-cell--special {
+            background:
+                linear-gradient(180deg, rgba(240, 210, 164, 0.88), rgba(220, 183, 126, 0.9));
+        }
+
+        .board-cell.active {
+            color: #fff7e4;
+            background: linear-gradient(180deg, rgba(163, 39, 30, 0.92), rgba(122, 28, 22, 0.96));
+            box-shadow:
+                inset 0 0 22px rgba(255, 231, 187, 0.16),
+                0 0 28px rgba(163, 39, 30, 0.38);
+            transform: scale(1.06);
+            z-index: 2;
+        }
+
+        #planchette {
+            position: absolute;
+            width: 92px;
+            height: 92px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 2px solid rgba(254, 237, 204, 0.55);
+            background:
+                radial-gradient(circle at 35% 30%, rgba(255, 250, 241, 0.78), rgba(244, 222, 184, 0.38) 28%, rgba(134, 76, 33, 0.14) 54%, rgba(36, 18, 12, 0.78) 100%);
+            box-shadow:
+                0 16px 34px rgba(0, 0, 0, 0.35),
+                inset 0 0 18px rgba(255, 248, 225, 0.28),
+                0 0 22px rgba(255, 220, 166, 0.12);
+            z-index: 4;
+            pointer-events: none;
+            transition: left 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95), top 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95), transform 1.25s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+        }
+
+        #planchette::before,
+        #planchette::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+        }
+
+        #planchette::before {
+            width: 28px;
+            height: 28px;
+            background: radial-gradient(circle, rgba(23, 11, 9, 0.98) 0%, rgba(66, 30, 18, 0.9) 100%);
+            border: 2px solid rgba(255, 232, 191, 0.7);
+        }
+
+        #planchette::after {
+            width: 68px;
+            height: 68px;
+            border: 1px dashed rgba(255, 234, 198, 0.34);
+        }
+
+        .planchette-moving {
+            animation: planchette-shake 0.46s infinite alternate;
+        }
+
+        @keyframes planchette-shake {
+            from { transform: translate(-50%, -50%) rotate(-2deg); }
+            to { transform: translate(-50%, -50%) rotate(2deg); }
+        }
+
+        .ouija-overlay {
+            position: absolute;
+            inset: 0;
+            background:
+                linear-gradient(180deg, rgba(255, 247, 226, 0.02), transparent 18%, transparent 80%, rgba(0, 0, 0, 0.12)),
+                radial-gradient(circle at center, transparent 42%, rgba(0, 0, 0, 0.22) 100%);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .ritual-input-zone,
+        .ritual-log {
+            max-width: var(--board-width);
+            margin-inline: auto;
+        }
+
+        .ritual-input-zone {
+            display: flex;
+            gap: 15px;
+        }
+
+        .ritual-input {
+            background: linear-gradient(180deg, rgba(20, 10, 9, 0.92), rgba(10, 8, 8, 0.96));
+            border: 1px solid rgba(229, 201, 149, 0.16);
+            color: #fff5df;
+            border-radius: 18px;
+            box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.28);
+        }
+
+        .ritual-input::placeholder {
+            color: rgba(220, 192, 150, 0.54);
+        }
+
+        .ritual-input:focus {
+            border-color: rgba(229, 201, 149, 0.34);
+            box-shadow: 0 0 0 3px rgba(163, 39, 30, 0.14), inset 0 0 18px rgba(0, 0, 0, 0.28);
+        }
+
+        .ritual-button {
+            min-width: 176px;
+            border-radius: 18px;
+            border: 1px solid rgba(239, 199, 136, 0.22);
+            background: linear-gradient(180deg, rgba(141, 36, 28, 0.96), rgba(97, 24, 20, 0.98));
+            color: white;
+            box-shadow: 0 14px 26px rgba(0, 0, 0, 0.2);
+        }
+
+        .ritual-button:hover {
+            background: linear-gradient(180deg, rgba(161, 44, 34, 0.98), rgba(111, 28, 22, 1));
+        }
+
+        .ritual-log {
+            margin-top: 1rem;
+            min-height: 126px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(12, 8, 8, 0.94), rgba(7, 6, 6, 0.98));
+            border: 1px solid rgba(229, 201, 149, 0.16);
+            color: #dcc29a;
+            box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.32);
+        }
+
+        .ritual-log .muted {
+            color: rgba(219, 194, 154, 0.75);
+        }
+
+        .ritual-log .glow {
+            color: #f6d897;
+        }
+
+        .ritual-log .alert {
+            color: #fb7185;
+        }
+
+        @media (max-width: 1024px) {
+            :root {
+                --board-width: 100%;
+                --board-height: 720px;
+            }
+
+            .board-cell {
+                font-size: 1.9rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --board-height: 640px;
+            }
+
+            .ritual-caption,
+            .ritual-input-zone {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .ritual-button {
+                width: 100%;
+            }
+
+            .board-grid {
+                inset: 20px;
+            }
+
+            .board-cell {
+                font-size: 1.35rem;
+            }
+
+            .board-cell--word,
+            .board-cell--center,
+            .board-cell--wide {
+                font-size: 0.95rem;
+            }
+
+            #planchette {
+                width: 78px;
+                height: 78px;
+            }
+
+            #planchette::after {
+                width: 56px;
+                height: 56px;
+            }
+        }
+    </style>
+</head>
+<body class="ritual-page flex min-h-screen selection:bg-crimson-800 selection:text-white antialiased">
+    <aside class="w-64 h-screen sticky top-0 glass-panel border-r border-crimson-900/50 flex flex-col z-20 shrink-0">
+        <div class="p-6 flex items-center gap-3 border-b border-crimson-900/50">
+            <div class="p-2 bg-crimson-900/30 rounded-lg text-crimson-500 animate-pulse-slow"><i data-lucide="ghost"></i></div>
+            <h1 class="text-xl font-bold tracking-wider text-white">GhostAI<span class="text-crimson-500">.</span></h1>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2 relative">
+            <a href="./index.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="wand-2" class="w-5 h-5"></i><span class="font-medium">AI Studio</span>
+            </a>
+            <a href="./feed.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="radio" class="w-5 h-5"></i><span class="font-medium">The Ghost Radio</span>
+            </a>
+            <a href="./ouija.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-200 bg-crimson-900/10 border-crimson-800/50 crimson-glow tab-active">
+                <i data-lucide="layout" class="w-5 h-5 text-crimson-400"></i><span class="font-medium">ผีถ้วยแก้ว</span>
+            </a>
+            <a href="./tarot.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="clover" class="w-5 h-5"></i><span class="font-medium">Spirit Tarot</span>
+            </a>
+            <a href="./settings.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="settings" class="w-5 h-5"></i><span class="font-medium">ตั้งค่า</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 relative">
+        <header class="h-16 glass-panel border-b border-crimson-900/30 flex items-center justify-between px-8 z-10">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-100 tracking-wide">กระดานผีถ้วยแก้วไทย</h2>
+                <p class="text-xs text-amber-100/50">อักษรไทยเต็มชุด พร้อมสระ วรรณยุกต์ และคำตอบสำเร็จรูป</p>
+            </div>
+            <div id="connection-status" class="flex items-center gap-2">
+                <span class="text-xs text-gray-500 font-medium uppercase tracking-tighter">Spirit Link</span>
+                <div class="w-2 h-2 rounded-full bg-crimson-500 animate-pulse"></div>
+            </div>
+        </header>
+
+        <div class="p-8 overflow-y-auto flex-1">
+            <div class="board-shell">
+                <div class="ritual-caption">
+                    <div>
+                        <strong>บอร์ดไทยตามภาพอ้างอิง</strong>
+                        <span>มีพยัญชนะไทย สระ วรรณยุกต์ เลขไทย และช่องพิเศษอย่าง ชาย หญิง ใช่ ไม่ใช่</span>
+                    </div>
+                    <div class="text-sm text-amber-100/75">เวลาวิญญาณตอบ แก้วจะชี้เป็นคำไทยบนตารางนี้โดยตรง</div>
+                </div>
+
+                <div id="ouija-board" class="ouija-container">
+                    <div id="board-grid" class="board-grid"></div>
+                    <div id="planchette" aria-hidden="true"></div>
+                    <div class="ouija-overlay"></div>
+                </div>
+            </div>
+
+            <div class="ritual-input-zone">
+                <input
+                    type="text"
+                    id="ouija-question"
+                    placeholder="ถามสั้น ๆ เช่น 'คุณเป็นใคร' หรือ 'คุณเป็นผู้หญิงหรือชาย'"
+                    class="ritual-input flex-1 px-5 py-4 outline-none transition-all"
+                >
+                <button
+                    onclick="startOuijaSession()"
+                    id="btn-ask"
+                    class="ritual-button px-8 py-4 font-bold transition-all flex items-center justify-center gap-2"
+                >
+                    <i data-lucide="flame"></i> เริ่มถาม
+                </button>
+            </div>
+
+            <div id="ritual-log" class="ritual-log">
+                <div class="glow">สถานะ: พร้อมเริ่มพิธี</div>
+                <div class="muted">พิมพ์คำถาม แล้วรอดูว่าแก้วจะเลื่อนไปที่คำใดบนกระดาน</div>
+            </div>
+        </div>
+    </main>
+
+    <div id="vhs-overlay" class="active">
+        <div class="scanlines"></div>
+        <div class="crt-flicker"></div>
+        <div class="vignette"></div>
+    </div>
+
+    <script src="/lib/ouija-board.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

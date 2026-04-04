@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostAI Studio - Personalized Horror Ritual</title>
+    <link href="./output.css" rel="stylesheet">
+    <link rel="stylesheet" href="./styles/horror-theme.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500;600&family=Charm:wght@400;700&family=Sarabun:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .ritual-form-card {
+            background: rgba(10, 5, 5, 0.9);
+            border: 1px solid rgba(220, 38, 38, 0.3);
+            box-shadow: 0 0 30px rgba(220, 38, 38, 0.1);
+        }
+
+        .story-display {
+            font-family: 'Sarabun', sans-serif;
+            line-height: 1.8;
+            font-size: 1.2rem;
+            color: #ccc;
+            min-height: 400px;
+            white-space: pre-wrap;
+        }
+
+        .story-display b {
+            color: #ef4444;
+            text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .blood-input {
+            background: rgba(20, 10, 10, 0.8) !important;
+            border-bottom: 2px solid #450a0a !important;
+            border-top: none !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-radius: 0 !important;
+            transition: all 0.5s;
+        }
+
+        .blood-input:focus {
+            border-bottom-color: #dc2626 !important;
+            box-shadow: 0 5px 15px rgba(220, 38, 38, 0.1);
+        }
+
+        /* เอฟเฟกต์กระดาษเก่า */
+        .paper-texture {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.05'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="flex min-h-screen selection:bg-crimson-800 selection:text-white antialiased">
+    <!-- Sidebar -->
+    <aside class="w-64 h-screen sticky top-0 glass-panel border-r border-crimson-900/50 flex flex-col z-20 shrink-0">
+        <div class="p-6 flex items-center gap-3 border-b border-crimson-900/50">
+            <div class="p-2 bg-crimson-900/30 rounded-lg text-crimson-500 animate-pulse-slow"><i data-lucide="ghost"></i></div>
+            <h1 class="text-xl font-bold tracking-wider text-white">GhostAI<span class="text-crimson-500">.</span></h1>
+        </div>
+        <nav class="flex-1 px-4 py-6 space-y-2 relative">
+            <a href="./index.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="wand-2" class="w-5 h-5"></i><span class="font-medium">AI Studio</span>
+            </a>
+            <a href="./story-ritual.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-200 bg-crimson-900/10 border-crimson-800/50 crimson-glow tab-active">
+                <i data-lucide="book-open" class="w-5 h-5 text-crimson-400"></i><span class="font-medium">Personalized Ritual</span>
+            </a>
+            <a href="./ouija.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="layout" class="w-5 h-5"></i><span class="font-medium">Ouija Board</span>
+            </a>
+            <a href="./feed.html" class="nav-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-transparent hover:bg-crimson-900/20 text-gray-400 hover:text-gray-200">
+                <i data-lucide="radio" class="w-5 h-5"></i><span class="font-medium">The Ghost Radio</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 relative">
+        <header class="h-16 glass-panel border-b border-crimson-900/30 flex items-center justify-between px-8 z-10">
+            <h2 class="text-lg font-semibold text-gray-200 tracking-wide uppercase">Personalized Horror Ritual</h2>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-crimson-500 font-bold animate-pulse">LIVE SACRIFICE</span>
+            </div>
+        </header>
+
+        <div class="p-8 overflow-y-auto flex-1 paper-texture">
+            <div class="max-w-3xl mx-auto space-y-12">
+                
+                <!-- ส่วนกรอกข้อมูล -->
+                <section id="ritual-setup" class="ritual-form-card p-8 rounded-2xl animate-fade-in">
+                    <div class="text-center mb-8">
+                        <h3 class="text-2xl font-bold text-white mb-2">ระบุตัวตนของคุณเพื่อเริ่มต้น</h3>
+                        <p class="text-gray-500 text-sm italic">"ยิ่งข้อมูลจริงเท่าไหร่... มันยิ่งหาตัวคุณง่ายขึ้นเท่านั้น"</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">ชื่อของคุณ (หรือนามแฝง)</label>
+                            <input type="text" id="target-name" placeholder="ระบุชื่อ..." class="w-full px-4 py-3 bg-transparent text-white blood-input outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">จังหวัดที่อาศัยอยู่</label>
+                                <input type="text" id="target-location" placeholder="เช่น กรุงเทพฯ, เชียงใหม่..." class="w-full px-4 py-3 bg-transparent text-white blood-input outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">สิ่งที่คุณกลัวที่สุด</label>
+                                <input type="text" id="target-fear" placeholder="เช่น ความมืด, แมงมุม, ผีเด็ก..." class="w-full px-4 py-3 bg-transparent text-white blood-input outline-none">
+                            </div>
+                        </div>
+                        <button onclick="invokePersonalRitual()" id="btn-invoke" class="w-full py-4 bg-crimson-950/50 hover:bg-crimson-900 border border-crimson-800 text-crimson-100 font-bold rounded-xl transition-all flex items-center justify-center gap-3 group">
+                            <i data-lucide="skull" class="group-hover:animate-bounce"></i> เริ่มพิธีกรรมเขียนตำนานเลือด
+                        </button>
+                    </div>
+                </section>
+
+                <!-- ส่วนแสดงผลเนื้อเรื่อง -->
+                <section id="ritual-result" class="hidden space-y-8 animate-fade-in">
+                    <div class="relative ritual-form-card p-10 rounded-3xl border-double border-4 border-crimson-900/50">
+                        <div id="story-content" class="story-display">
+                            <!-- เนื้อเรื่องจะค่อยๆ พิมพ์ออกมาที่นี่ -->
+                        </div>
+                        
+                        <!-- Overlay สำหรับ Jump Scare -->
+                        <div id="ritual-flash" class="absolute inset-0 bg-white opacity-0 pointer-events-none transition-opacity duration-75 rounded-3xl"></div>
+                    </div>
+
+                    <div class="flex justify-center gap-4">
+                        <button onclick="resetRitual()" class="px-6 py-2 text-sm text-gray-500 hover:text-white transition-colors">ลบประวัติและจบพิธีกรรม</button>
+                        <button onclick="shareStory()" class="px-6 py-2 text-sm bg-white/5 hover:bg-white/10 text-gray-300 rounded-lg border border-white/10 transition-all">แชร์ตำนานนี้ (Copy)</button>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- เอฟเฟกต์หน้าจอ -->
+    <div id="vhs-overlay" class="active opacity-20">
+        <div class="scanlines"></div>
+        <div class="vignette"></div>
+    </div>
+
+    <!-- Jump Scare Container -->
+    <div id="jumpscare-overlay"></div>
+
+    <script src="/lib/story-ritual.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

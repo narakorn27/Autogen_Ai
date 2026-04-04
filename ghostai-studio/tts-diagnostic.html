@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostAI TTS Diagnostic</title>
+    <link href="./output.css" rel="stylesheet">
+    <style>
+        body { background: #090909; color: #f3f3f3; font-family: system-ui, sans-serif; }
+        .card { background: #121212; border: 1px solid #2a2a2a; border-radius: 16px; }
+        textarea, select, button { font: inherit; }
+        textarea, select { background: #0d0d0d; color: #f3f3f3; border: 1px solid #303030; border-radius: 12px; }
+        button { border-radius: 12px; }
+        pre { white-space: pre-wrap; word-break: break-word; }
+    </style>
+</head>
+<body class="min-h-screen p-6">
+    <main class="max-w-5xl mx-auto space-y-6">
+        <section class="card p-6 space-y-4">
+            <div>
+                <h1 class="text-2xl font-bold">TTS Diagnostic</h1>
+                <p class="text-sm text-gray-400">ทดสอบข้อความยาวแยกจากหน้า `index.html` เพื่อตรวจว่าเป็นปัญหาที่ API หรือ playback logic</p>
+            </div>
+
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="text-sm text-gray-300">Voice</label>
+                    <select id="diag-voice" class="w-full px-3 py-3"></select>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm text-gray-300">Actions</label>
+                    <div class="flex gap-3">
+                        <button id="btn-run-diagnostic" class="px-4 py-3 bg-red-700 hover:bg-red-600 text-white">Run Diagnostic</button>
+                        <button id="btn-play-diagnostic" class="px-4 py-3 bg-gray-800 hover:bg-gray-700 text-white">Play Raw</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-sm text-gray-300">Long Text</label>
+                <textarea id="diag-text" rows="14" class="w-full p-4">คืนหนึ่งในฤดูฝน ฉันเดินกลับบ้านผ่านซอยเก่าที่แทบไม่มีคนใช้ ถนนเปียกชื้นสะท้อนแสงไฟสีส้มจากเสาไฟที่กระพริบเป็นจังหวะ เสียงฝีเท้าของฉันดังแผ่วอยู่เพียงคนเดียว แต่ทุกครั้งที่หยุดเดิน ฉันกลับได้ยินอีกหนึ่งจังหวะที่หยุดตามเหมือนมีใครกำลังเดินตามอยู่ห่างออกไปไม่กี่ก้าว ฉันพยายามไม่หันกลับไปมอง เพราะจำได้ว่าคนแก่ในละแวกนั้นเคยเตือนว่า ถ้าได้ยินเสียงเท้าตามหลังในซอยนี้ อย่าหันกลับไปจนกว่าจะถึงปากซอย แต่ยิ่งฉันรีบเดิน เสียงนั้นก็ยิ่งใกล้ขึ้น ใกล้ขึ้น จนเหมือนลมหายใจเย็นเฉียบกำลังรินอยู่ตรงต้นคอ และเมื่อฉันเกือบถึงหน้าบ้าน เสียงกระซิบเบา ๆ ก็ดังขึ้นว่า อย่าเปิดประตู เพราะข้างใน... ไม่ใช่บ้านของเจ้าอีกต่อไป</textarea>
+            </div>
+        </section>
+
+        <section class="card p-6 space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-lg font-semibold">Diagnostic Log</h2>
+                <div id="diag-status" class="text-sm text-gray-400">Idle</div>
+            </div>
+            <pre id="diag-output" class="text-sm text-gray-200 bg-black/30 rounded-xl p-4 min-h-[220px]"></pre>
+        </section>
+    </main>
+
+    <script src="./lib/tts-engine.js"></script>
+    <script>
+        function fillVoices() {
+            const select = document.getElementById('diag-voice');
+            if (!window.GEMINI_VOICES) return;
+            select.innerHTML = window.GEMINI_VOICES.map((voice) =>
+                `<option value="${voice.id}">${voice.id} - ${voice.name}</option>`
+            ).join('');
+        }
+
+        async function runDiagnostic() {
+            const text = document.getElementById('diag-text').value;
+            const voice = document.getElementById('diag-voice').value;
+            const status = document.getElementById('diag-status');
+            const output = document.getElementById('diag-output');
+
+            status.textContent = 'Running...';
+            output.textContent = 'Testing...';
+
+            try {
+                const result = await window.runCloudTTSDiagnostics(text, voice);
+                output.textContent = JSON.stringify(result, null, 2);
+                status.textContent = 'Done';
+            } catch (error) {
+                output.textContent = error.stack || error.message;
+                status.textContent = 'Error';
+            }
+        }
+
+        async function playRaw() {
+            const text = document.getElementById('diag-text').value;
+            const voice = document.getElementById('diag-voice').value;
+            const status = document.getElementById('diag-status');
+            const output = document.getElementById('diag-output');
+
+            status.textContent = 'Synthesizing...';
+            try {
+                const wav = await window.synthesizeCloudTTS(text, voice);
+                if (!wav) throw new Error('No audio returned');
+
+                const blob = new Blob([wav], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                const audio = new Audio(url);
+                audio.onended = () => {
+                    status.textContent = 'Playback ended';
+                    URL.revokeObjectURL(url);
+                };
+                await audio.play();
+                output.textContent = `Returned ${wav.byteLength || wav.length || 0} bytes`;
+                status.textContent = 'Playing raw';
+            } catch (error) {
+                output.textContent = error.stack || error.message;
+                status.textContent = 'Error';
+            }
+        }
+
+        document.getElementById('btn-run-diagnostic').addEventListener('click', runDiagnostic);
+        document.getElementById('btn-play-diagnostic').addEventListener('click', playRaw);
+        fillVoices();
+    </script>
+</body>
+</html>
