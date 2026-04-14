@@ -66,3 +66,40 @@ a {
     transform: translateY(0);
   }
 }
+
+.idle-ghost-text {
+  position: fixed;
+  left: 50%;
+  bottom: 3rem;
+  z-index: 70;
+  transform: translateX(-50%) translateY(12px);
+  pointer-events: none;
+  opacity: 0;
+  color: rgba(248, 113, 113, 0.86);
+  font-size: clamp(1.3rem, 3vw, 3rem);
+  letter-spacing: 0.18em;
+  text-shadow: 0 0 22px rgba(220, 38, 38, 0.6);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.idle-ghost-text.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.jumpscare-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.85), rgba(220, 38, 38, 0.45) 24%, rgba(0, 0, 0, 0.05) 62%),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent 18%, rgba(255, 255, 255, 0.08) 42%, transparent 64%);
+  mix-blend-mode: screen;
+  transition: opacity 0.08s linear;
+}
+
+.jumpscare-overlay.visible {
+  opacity: 0.9;
+}

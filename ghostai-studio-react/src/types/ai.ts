@@ -1,5 +1,7 @@
 import type { AiProvider } from "./settings";
 
+export type ApiTestProvider = AiProvider | "tts" | "elevenlabs";
+
 export type StoryGenerationRequest = {
   keyword: string;
   genre: string;

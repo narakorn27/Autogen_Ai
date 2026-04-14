@@ -2,6 +2,8 @@
 
 โปรเจคนี้คือเวอร์ชัน React ใหม่ของ `ghostai-studio` โดยสร้างแยกไว้ใน `ghostai-studio-react` เพื่อไม่กระทบไฟล์เดิม
 
+KE GHOST AI EVENLAB : New_sk_dd6bda5d3383fd4263b10e474bd631f48fbfdc8b82a7ab66 
+
 ## คำสั่งที่ใช้บ่อย
 
 ```bash
@@ -14,6 +16,17 @@ npm run preview
 - `npm run dev` ใช้เปิดเว็บตอนพัฒนา
 - `npm run build` ใช้สร้างไฟล์ static ใน `dist/` สำหรับเอาไป deploy
 - `npm run preview` ใช้ดู build production ในเครื่อง
+
+ถ้าใช้ PowerShell แล้วเจอข้อความว่า `npm.ps1 cannot be loaded because running scripts is disabled` ให้ใช้คำสั่งแบบนี้แทน:
+
+```bash
+npm.cmd install
+npm.cmd run dev
+npm.cmd run build
+npm.cmd run preview
+```
+
+หมายเหตุ: `package.json` ของโปรเจคนี้เรียก `vite` และ `tsc` ผ่าน `node ./node_modules/...` เพื่อเลี่ยงปัญหา path บน Windows ที่ชื่อโฟลเดอร์มีสัญลักษณ์พิเศษ เช่น `&`
 
 ## โครงหลักที่ต้องจำ
 
@@ -32,11 +45,23 @@ npm run preview
 
 - `/#/` = AI Studio
 - `/#/feed` = The Ghost Radio
+- `/#/spirit-box` = Spirit Box EVP
 - `/#/tarot` = Spirit Tarot
 - `/#/ouija` = Ouija Board
 - `/#/story-ritual` = Personalized Ritual
 - `/#/settings` = Settings
 - `/#/dev-tools` = เครื่องมือทดสอบภายใน
+
+## สถานะฟีเจอร์ที่ทดสอบได้ตอนนี้
+
+- `Settings` บันทึก key และทดสอบ `Gemini`, `Groq`, `OpenRouter`, `Google Cloud TTS`
+- `Feed` ดึง RSS/mock และทำ workflow เลือกคลิป -> summary -> Ghost Rewrite -> copy/TTS
+- `AI Studio` สร้างสคริปต์จาก keyword, metadata, voice card picker แบบ legacy, realtime Audio FX panel, export `.txt`, raw `.mp3`, export with FX `.wav`, thumbnail canvas export และ TTS Haunted FX preview
+- `Spirit Box` ถามตอบวิญญาณแบบ EVP พร้อม oscilloscope และ TTS Haunted FX
+- `Personalized Ritual` สร้างเรื่องเฉพาะบุคคลและลองพากย์ TTS
+- `Spirit Tarot` สุ่มไพ่ ตีความด้วย AI/fallback มี frequency interference canvas, copy/export และ TTS
+- `Ouija Board` ถามตอบวิญญาณด้วย board, planchette animation, board path และ session log
+- `Dev Tools` ทดสอบ split text, TTS, stop, export mp3 และ Haunted FX preview
 
 ## เอกสารสำหรับเริ่มอ่าน
 

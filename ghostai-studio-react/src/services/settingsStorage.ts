@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   groqKey: "gh_api_groq",
   openRouterKey: "gh_api_openrouter",
   ttsKey: "gh_api_tts",
+  elevenLabsKey: "gh_api_eleven",
   activeAiProvider: "gh_active_ai",
   primaryVoiceId: "gh_primary_voice",
   secondaryVoiceId: "gh_secondary_voice",
@@ -17,6 +18,7 @@ export const defaultSettings: AppSettings = {
   groqKey: "",
   openRouterKey: "",
   ttsKey: "",
+  elevenLabsKey: "",
   activeAiProvider: "gemini",
   primaryVoiceId: "Charon",
   secondaryVoiceId: "Kore",
@@ -41,6 +43,7 @@ export function loadSettings(): AppSettings {
     groqKey: getItem(STORAGE_KEYS.groqKey),
     openRouterKey: getItem(STORAGE_KEYS.openRouterKey),
     ttsKey: getItem(STORAGE_KEYS.ttsKey),
+    elevenLabsKey: getItem(STORAGE_KEYS.elevenLabsKey),
     activeAiProvider: (getItem(STORAGE_KEYS.activeAiProvider) || "gemini") as AppSettings["activeAiProvider"],
     primaryVoiceId: getItem(STORAGE_KEYS.primaryVoiceId) || defaultSettings.primaryVoiceId,
     secondaryVoiceId: getItem(STORAGE_KEYS.secondaryVoiceId) || defaultSettings.secondaryVoiceId,
@@ -54,6 +57,7 @@ export function saveSettings(settings: AppSettings) {
   setItem(STORAGE_KEYS.groqKey, settings.groqKey);
   setItem(STORAGE_KEYS.openRouterKey, settings.openRouterKey);
   setItem(STORAGE_KEYS.ttsKey, settings.ttsKey);
+  setItem(STORAGE_KEYS.elevenLabsKey, settings.elevenLabsKey);
   setItem(STORAGE_KEYS.activeAiProvider, settings.activeAiProvider);
   setItem(STORAGE_KEYS.primaryVoiceId, settings.primaryVoiceId);
   setItem(STORAGE_KEYS.secondaryVoiceId, settings.secondaryVoiceId);

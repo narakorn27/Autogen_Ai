@@ -5,6 +5,7 @@ export type AppSettings = {
   groqKey: string;
   openRouterKey: string;
   ttsKey: string;
+  elevenLabsKey: string;
   activeAiProvider: AiProvider;
   primaryVoiceId: string;
   secondaryVoiceId: string;

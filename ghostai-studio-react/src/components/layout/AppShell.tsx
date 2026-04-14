@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
+import GhostOverlay from "@/components/common/GhostOverlay";
 import { navigationItems } from "@/config/navigation";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -20,6 +21,7 @@ export default function AppShell() {
           </div>
         </div>
       </main>
+      <GhostOverlay />
     </div>
   );
 }

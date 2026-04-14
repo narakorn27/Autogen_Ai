@@ -4,6 +4,7 @@ import DevToolsPage from "./pages/DevToolsPage";
 import FeedPage from "./pages/FeedPage";
 import OuijaPage from "./pages/OuijaPage";
 import SettingsPage from "./pages/SettingsPage";
+import SpiritBoxPage from "./pages/SpiritBoxPage";
 import StoryRitualPage from "./pages/StoryRitualPage";
 import StudioPage from "./pages/StudioPage";
 import TarotPage from "./pages/TarotPage";
@@ -16,6 +17,7 @@ export const router = createHashRouter([
     children: [
       { index: true, element: <StudioPage /> },
       { path: "feed", element: <FeedPage /> },
+      { path: "spirit-box", element: <SpiritBoxPage /> },
       { path: "tarot", element: <TarotPage /> },
       { path: "ouija", element: <OuijaPage /> },
       { path: "story-ritual", element: <StoryRitualPage /> },
