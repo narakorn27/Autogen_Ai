@@ -8,10 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import AudioFxPanel from "@/features/tts/AudioFxPanel";
 import TtsVoicePicker from "@/features/tts/TtsVoicePicker";
 import { generateStoryDraft, requestTextFromActiveProvider, testAiConnection } from "@/services/aiService";
+import { consumePendingStudioTransfer } from "@/services/studioTransferService";
 import { TTS_ENGINE_OPTIONS, TTS_VOICES, downloadNarration, downloadNarrationWithFx, listElevenVoices, listGoogleTtsVoices, playNarration, stopNarration, updateNarrationFx } from "@/services/ttsService";
 import type { StoryGenerationRequest } from "@/types/ai";
 import type { AiProvider } from "@/types/settings";
 import type { TtsAudioFxSettings, TtsVoice } from "@/types/tts";
+import { ELEVEN_THAI_PREVIEW_TEXT, getElevenThaiPreviewPath } from "@/utils/elevenPreviewClips";
 
 type StudioMetadata = {
   title: string;
@@ -63,6 +65,7 @@ export default function StudioPage() {
   const [thumbnailSeed, setThumbnailSeed] = useState(7);
   const thumbnailCanvasRef = useRef<HTMLCanvasElement>(null);
   const playbackActionIdRef = useRef(0);
+  const previewSampleAudioRef = useRef<HTMLAudioElement | null>(null);
   const selectedTtsEngine = TTS_ENGINE_OPTIONS.find((engine) => engine.id === ttsEngineId) || TTS_ENGINE_OPTIONS[0];
   const selectedVoice = availableVoices.find((voice) => voice.id === voiceId) || TTS_VOICES.find((voice) => voice.id === voiceId);
 
@@ -83,6 +86,16 @@ export default function StudioPage() {
     ? window.localStorage.getItem("gh_api_eleven")?.trim() || ""
     : window.localStorage.getItem("gh_api_tts")?.trim() || "";
   const ttsProviderStatus = ttsApiStatus || (currentTtsKey ? "มี API key" : "ยังไม่มี API key");
+  const activityState = ttsPlaying
+    ? "Playing"
+    : ttsPreparing || loading || metadataLoading || audioGenerating
+      ? "Working"
+      : "Ready";
+  const activityTone = ttsPlaying
+    ? "border-emerald-700/70 bg-emerald-950/40 text-emerald-200"
+    : ttsPreparing || loading || metadataLoading || audioGenerating
+      ? "border-amber-700/70 bg-amber-950/40 text-amber-200"
+      : "border-crimson-800/70 bg-crimson-950/35 text-crimson-200";
 
   async function handleCheckTtsApi() {
     const provider = selectedTtsEngine.provider === "elevenlabs" ? "elevenlabs" : "tts";
@@ -118,6 +131,22 @@ export default function StudioPage() {
       seed: thumbnailSeed
     });
   }, [thumbnailTitle, style, durationMinutes, goreLevel, thumbnailSeed]);
+
+  useEffect(() => {
+    const pendingTransfer = consumePendingStudioTransfer();
+    if (!pendingTransfer?.script?.trim()) return;
+
+    setStory(pendingTransfer.script);
+    setKeyword(pendingTransfer.title || pendingTransfer.sourceTitle || keyword);
+    setMetadata((current) => ({
+      ...current,
+      title: pendingTransfer.title || pendingTransfer.sourceTitle || current.title,
+      description: pendingTransfer.summary || current.description
+    }));
+    setAudioAssetsReady(false);
+    setAudioGenerating(false);
+    setStatus(pendingTransfer.statusMessage || "Imported script from Feed pipeline.");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -313,6 +342,10 @@ ${story.slice(0, 3500)}`;
   useEffect(() => {
     return () => {
       stopNarration();
+      if (previewSampleAudioRef.current) {
+        previewSampleAudioRef.current.pause();
+        previewSampleAudioRef.current = null;
+      }
     };
   }, []);
 
@@ -362,10 +395,48 @@ ${story.slice(0, 3500)}`;
   }
 
   async function previewVoice(nextVoiceId: string) {
-    setStatus(`กำลัง preview เสียง ${nextVoiceId}...`);
+    const voice = availableVoices.find((item) => item.id === nextVoiceId);
+    const localPreviewPath = selectedTtsEngine.provider === "elevenlabs" ? getElevenThaiPreviewPath(nextVoiceId) : "";
+    const fallbackPreviewUrl = voice?.previewUrl || "";
+
+    const stopSampleAudio = () => {
+      if (!previewSampleAudioRef.current) return;
+      previewSampleAudioRef.current.pause();
+      previewSampleAudioRef.current.currentTime = 0;
+      previewSampleAudioRef.current = null;
+    };
+
+    const playSampleFromUrl = async (url: string, label: string) => {
+      stopNarration();
+      stopSampleAudio();
+      const audio = new Audio(url);
+      previewSampleAudioRef.current = audio;
+      audio.preload = "auto";
+      audio.onended = () => {
+        if (previewSampleAudioRef.current === audio) previewSampleAudioRef.current = null;
+      };
+      await audio.play();
+      setStatus(label);
+    };
+
+    setStatus(`Preparing voice preview ${nextVoiceId}...`);
     try {
+      if (localPreviewPath) {
+        try {
+          await playSampleFromUrl(localPreviewPath, `Playing local mp3 preview ${nextVoiceId}`);
+          return;
+        } catch {}
+      }
+
+      if (fallbackPreviewUrl) {
+        try {
+          await playSampleFromUrl(fallbackPreviewUrl, `Playing sample preview ${nextVoiceId}`);
+          return;
+        } catch {}
+      }
+
       await playNarration({
-        text: "คืนนี้ GhostAI จะเล่าเรื่องนี้ให้คุณฟัง ด้วยเสียงที่มาจากความมืด",
+        text: ELEVEN_THAI_PREVIEW_TEXT,
         voiceId: nextVoiceId,
         provider: selectedTtsEngine.provider,
         modelId: selectedTtsEngine.modelId,
@@ -374,7 +445,7 @@ ${story.slice(0, 3500)}`;
         hauntedFx: true,
         audioFx
       });
-      setStatus(`กำลังเล่น preview เสียง ${nextVoiceId}`);
+      setStatus(`Playing generated preview ${nextVoiceId}`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error));
     }
@@ -504,10 +575,22 @@ ${story.slice(0, 3500)}`;
 
           <Textarea value={story} onChange={(event) => setStory(event.target.value)} rows={18} placeholder="สคริปต์ที่สร้างจะมาอยู่ตรงนี้" />
 
-          <div className="grid gap-3 rounded-2xl border border-dark-700 bg-black/20 p-4 text-sm text-gray-400 md:grid-cols-3">
-            <p>คำประมาณ: <span className="text-gray-100">{wordCount}</span></p>
-            <p>เวลาพากย์ประมาณ: <span className="text-gray-100">{estimatedMinutes} นาที</span></p>
-            <p>สถานะ: <span className="text-crimson-200">{status}</span></p>
+          <div className="grid gap-3 rounded-2xl border border-dark-700 bg-black/20 p-4 md:grid-cols-3">
+            <div className="rounded-xl border border-blue-900/60 bg-blue-950/20 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-blue-300/80">Words</p>
+              <p className="mt-1 text-lg font-black text-blue-100">{wordCount.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-blue-200/70">คำประมาณในสคริปต์ปัจจุบัน</p>
+            </div>
+            <div className="rounded-xl border border-violet-900/60 bg-violet-950/20 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-violet-300/80">Narration Est.</p>
+              <p className="mt-1 text-lg font-black text-violet-100">{estimatedMinutes} นาที</p>
+              <p className="mt-1 text-xs text-violet-200/70">เวลาพากย์โดยประมาณ</p>
+            </div>
+            <div className={`rounded-xl border px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${activityTone}`}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] opacity-80">Status</p>
+              <p className="mt-1 text-sm font-black">{status}</p>
+              <p className="mt-1 text-xs opacity-75">{activityState === "Ready" ? "พร้อมเริ่มทำงาน" : activityState === "Working" ? "ระบบกำลังประมวลผล" : "กำลังเล่นเสียงอยู่"}</p>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3">

@@ -1,6 +1,8 @@
 import type { FeedItem } from "@/types/feed";
+import { loadSettings } from "@/services/settingsStorage";
 
 const RSS_URL = "https://www.youtube.com/feeds/videos.xml?channel_id=UCM246zZ4qMNmDw8JOPjFquw";
+const DEFAULT_CHANNEL_ID = "UCM246zZ4qMNmDw8JOPjFquw";
 
 export const mockFeedItems: FeedItem[] = [
   {
@@ -25,7 +27,7 @@ export function parseYouTubeFeedXml(xmlText: string): FeedItem[] {
 
   return Array.from(xml.querySelectorAll("entry"))
     .map((entry) => ({
-      title: entry.querySelector("title")?.textContent?.trim() || "Untitled",
+      title: entry.querySelector("title")?.textContent?.trim() || "ไม่มีชื่อคลิป",
       link: entry.querySelector("link")?.getAttribute("href") || "https://youtube.com",
       pubDate: entry.querySelector("published")?.textContent || new Date().toISOString(),
       thumbnail: entry.querySelector("media\\:thumbnail, thumbnail")?.getAttribute("url") || "",
@@ -34,11 +36,18 @@ export function parseYouTubeFeedXml(xmlText: string): FeedItem[] {
     .filter((item) => item.link);
 }
 
+function getConnectorUrl() {
+  return loadSettings().sttConnectorUrl.trim().replace(/\/+$/, "");
+}
+
 export async function fetchGhostRadioFeed(): Promise<FeedItem[]> {
   if (window.location.protocol === "file:") return mockFeedItems;
 
   try {
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(RSS_URL)}`;
+    const connectorUrl = getConnectorUrl();
+    const proxyUrl = connectorUrl
+      ? `${connectorUrl}/api/youtube_feed.php?channel_id=${encodeURIComponent(DEFAULT_CHANNEL_ID)}`
+      : `https://api.allorigins.win/raw?url=${encodeURIComponent(RSS_URL)}`;
     const response = await fetch(proxyUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const items = parseYouTubeFeedXml(await response.text());

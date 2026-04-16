@@ -103,3 +103,25 @@ a {
 .jumpscare-overlay.visible {
   opacity: 0.9;
 }
+
+.ghost-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(185, 28, 28, 0.78) rgba(20, 20, 20, 0.45);
+}
+
+.ghost-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ghost-scrollbar::-webkit-scrollbar-track {
+  background: rgba(20, 20, 20, 0.45);
+}
+
+.ghost-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.82), rgba(153, 27, 27, 0.9));
+}
+
+.ghost-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(248, 113, 113, 0.88), rgba(185, 28, 28, 0.95));
+}

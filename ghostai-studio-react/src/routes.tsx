@@ -3,6 +3,7 @@ import AppShell from "./components/layout/AppShell";
 import DevToolsPage from "./pages/DevToolsPage";
 import FeedPage from "./pages/FeedPage";
 import OuijaPage from "./pages/OuijaPage";
+import ProvinceSeriesPage from "./pages/ProvinceSeriesPage";
 import SettingsPage from "./pages/SettingsPage";
 import SpiritBoxPage from "./pages/SpiritBoxPage";
 import StoryRitualPage from "./pages/StoryRitualPage";
@@ -16,6 +17,7 @@ export const router = createHashRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <StudioPage /> },
+      { path: "province-series", element: <ProvinceSeriesPage /> },
       { path: "feed", element: <FeedPage /> },
       { path: "spirit-box", element: <SpiritBoxPage /> },
       { path: "tarot", element: <TarotPage /> },

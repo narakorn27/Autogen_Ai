@@ -6,7 +6,7 @@ import SystemStatus from "./SystemStatus";
 
 export default function Sidebar() {
   return (
-    <aside className="glass-panel sticky top-0 z-20 hidden h-screen w-64 shrink-0 flex-col border-r border-crimson-900/50 md:flex">
+    <aside className="glass-panel fixed inset-y-0 left-0 z-30 hidden h-screen w-64 flex-col overflow-hidden border-r border-crimson-900/50 md:flex">
       <div className="flex items-center gap-3 border-b border-crimson-900/50 p-6">
         <div className="animate-pulse-slow rounded-lg bg-crimson-900/30 p-2 text-crimson-500">
           <Ghost />
@@ -16,7 +16,7 @@ export default function Sidebar() {
         </h1>
       </div>
 
-      <nav className="flex-1 space-y-2 px-4 py-6">
+      <nav className="ghost-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-6">
         {navigationItems
           .filter((item) => item.enabled)
           .map((item) => (

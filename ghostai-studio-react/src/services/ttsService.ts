@@ -4,6 +4,9 @@ const GOOGLE_TTS_ENDPOINT = "https://texttospeech.googleapis.com/v1/text:synthes
 const GOOGLE_TTS_VOICES_ENDPOINT = "https://texttospeech.googleapis.com/v1/voices";
 const ELEVENLABS_VOICES_ENDPOINT = "https://api.elevenlabs.io/v1/voices";
 const ELEVENLABS_TTS_ENDPOINT = "https://api.elevenlabs.io/v1/text-to-speech";
+const BLOCKED_ELEVEN_VOICE_IDS = new Set([
+  "EkK5I93UQWFDigLMpZcX"
+]);
 const TTS_MAX_CHARS = 220;
 const TTS_CONCURRENCY = 3;
 const ELEVEN_TTS_CONCURRENCY = 1;
@@ -234,7 +237,7 @@ export async function listElevenVoices(): Promise<TtsVoice[]> {
   };
 
   const voices: TtsVoice[] = (data.voices || [])
-    .filter((voice) => voice.voice_id && voice.name)
+    .filter((voice) => voice.voice_id && voice.name && !BLOCKED_ELEVEN_VOICE_IDS.has(voice.voice_id))
     .map((voice) => ({
       id: voice.voice_id as string,
       name: voice.name as string,
@@ -282,17 +285,15 @@ function normalizeThaiSpeechText(text: string, preserveLineBreaks = false) {
     .replace(/[\u201C\u201D]/g, "\"")
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u2010\u2011\u2012\u2013\u2014]/g, "-")
-    .replace(/\bAI\b/gi, "à¹€à¸­à¹„à¸­")
-    .replace(/\bAPI\b/gi, "à¹€à¸­à¸žà¸µà¹„à¸­")
-    .replace(/\bTTS\b/gi, "à¸—à¸µà¸—à¸µà¹€à¸­à¸ª")
-    .replace(/\bSSML\b/gi, "à¹€à¸­à¸ªà¹€à¸­à¸ªà¹€à¸­à¹‡à¸¡à¹à¸­à¸¥")
-    .replace(/\bGoogle\b/gi, "à¸à¸¹à¹€à¸à¸´à¸¥")
-    .replace(/\bGroq\b/gi, "à¸à¸£à¹‡à¸­à¸")
-    .replace(/\bOpenRouter\b/gi, "à¹‚à¸­à¹€à¸žà¸™à¹€à¸£à¸²à¹€à¸•à¸­à¸£à¹Œ")
+    .replace(/\bAI\b/gi, "เอไอ")
+    .replace(/\bAPI\b/gi, "เอพีไอ")
+    .replace(/\bTTS\b/gi, "ทีทีเอส")
+    .replace(/\bSSML\b/gi, "เอสเอสเอ็มแอล")
+    .replace(/\bGoogle\b/gi, "กูเกิล")
+    .replace(/\bGroq\b/gi, "กร็อก")
+    .replace(/\bOpenRouter\b/gi, "โอเพนเราเตอร์")
     .replace(/(?:^|[\s(])((?:[\u0E01-\u0E4E\u0E30-\u0E3A\u0E40-\u0E44]\s+){2,}[\u0E01-\u0E4E\u0E30-\u0E3A\u0E40-\u0E44])(?=$|[\s),.!?])/g, (full, group: string) => full.replace(group, group.replace(/\s+/g, "")))
-    .replace(/([à¸-à¸®])[ \t]+([à¸­-à¸®])/g, "$1$2")
     .replace(/([\u0E01-\u0E59])[ \t]+([\u0E31-\u0E4E\u0E33])+/g, "$1$2")
-    .replace(/([\u0E40-\u0E44])[ \t]+([\u0E01-\u0E2E])/g, "$1$2")
     .replace(preserveLineBreaks ? /[ \t]{2,}/g : /\s{2,}/g, " ")
     .trim();
 }
@@ -621,7 +622,7 @@ async function getElevenVoiceId(requestedVoiceId?: string) {
   }
 
   const data = await response.json() as { voices?: Array<{ voice_id?: string; category?: string }> };
-  const voices = data.voices || [];
+  const voices = (data.voices || []).filter((voice) => voice.voice_id && !BLOCKED_ELEVEN_VOICE_IDS.has(voice.voice_id));
   const preferredVoice =
     voices.find((voice) => voice.category === "premade" && voice.voice_id) ||
     voices.find((voice) => voice.voice_id);
@@ -896,6 +897,48 @@ export async function downloadNarration(request: TtsSynthesisRequest, filename =
   const link = document.createElement("a");
   link.href = url;
   link.download = ensureWavFilename(filename);
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return blob;
+}
+
+export async function downloadElevenPreviewMp3(request: TtsSynthesisRequest, filename = "ghostai-eleven-preview.mp3") {
+  const apiKey = getElevenKey();
+  if (!apiKey) throw new Error("Missing ElevenLabs API Key. Please add it in Settings first.");
+
+  const voiceId = await getElevenVoiceId(request.voiceId);
+  const text = buildChunkPlainText({
+    units: tokenizeTtsInput(request.text),
+    text: request.text
+  });
+
+  const response = await fetch(`${ELEVENLABS_TTS_ENDPOINT}/${voiceId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "xi-api-key": apiKey
+    },
+    body: JSON.stringify({
+      text,
+      model_id: request.modelId || "eleven_v3",
+      ...(request.modelId === "eleven_v3" ? { language_code: "th" } : {}),
+      voice_settings: {
+        stability: 0.45,
+        similarity_boost: 0.75
+      },
+      output_format: "mp3_44100_128"
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(await readElevenError(response));
+  }
+
+  const blob = new Blob([await response.arrayBuffer()], { type: "audio/mpeg" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename.replace(/\.[^.]+$/, "") + ".mp3";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   return blob;

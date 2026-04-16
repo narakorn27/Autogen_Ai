@@ -10,7 +10,7 @@ export default function AppShell() {
   const pageTitle = activeItem?.label ?? "GhostAI Studio";
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden antialiased selection:bg-crimson-800 selection:text-white">
+    <div className="min-h-screen overflow-x-hidden antialiased selection:bg-crimson-800 selection:text-white md:pl-64">
       {/* AppShell คือ layout กลาง ทุกหน้าจะได้ Sidebar/Topbar จากจุดนี้ ไม่ต้องเขียนซ้ำ */}
       <Sidebar />
       <main className="relative flex min-w-0 flex-1 flex-col bg-transparent">

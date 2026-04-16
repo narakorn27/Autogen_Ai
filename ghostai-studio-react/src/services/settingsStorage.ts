@@ -6,6 +6,10 @@ const STORAGE_KEYS = {
   openRouterKey: "gh_api_openrouter",
   ttsKey: "gh_api_tts",
   elevenLabsKey: "gh_api_eleven",
+  sttConnectorUrl: "gh_stt_connector_url",
+  defaultTranscriptMode: "gh_stt_default_mode",
+  byoGoogleApiKey: "gh_api_google_stt_byo",
+  showAdvancedTranscriptOptions: "gh_stt_show_advanced",
   activeAiProvider: "gh_active_ai",
   primaryVoiceId: "gh_primary_voice",
   secondaryVoiceId: "gh_secondary_voice",
@@ -19,6 +23,10 @@ export const defaultSettings: AppSettings = {
   openRouterKey: "",
   ttsKey: "",
   elevenLabsKey: "",
+  sttConnectorUrl: "http://localhost:8080",
+  defaultTranscriptMode: "managed_google",
+  byoGoogleApiKey: "",
+  showAdvancedTranscriptOptions: false,
   activeAiProvider: "gemini",
   primaryVoiceId: "Charon",
   secondaryVoiceId: "Kore",
@@ -38,12 +46,22 @@ function setItem(key: string, value: string) {
 
 // ไฟล์นี้เป็นตัวกลาง localStorage หน้าอื่นไม่ควรเรียก localStorage ตรงๆ ถ้าไม่จำเป็น
 export function loadSettings(): AppSettings {
+  const storedConnectorUrl = getItem(STORAGE_KEYS.sttConnectorUrl);
+  const normalizedConnectorUrl =
+    storedConnectorUrl === "http://localhost/ghostai-stt-connector-php/public" || storedConnectorUrl === "http://localhost/ghostai-stt-connector-php/public/"
+      ? defaultSettings.sttConnectorUrl
+      : storedConnectorUrl || defaultSettings.sttConnectorUrl;
+
   return {
     geminiKey: getItem(STORAGE_KEYS.geminiKey),
     groqKey: getItem(STORAGE_KEYS.groqKey),
     openRouterKey: getItem(STORAGE_KEYS.openRouterKey),
     ttsKey: getItem(STORAGE_KEYS.ttsKey),
     elevenLabsKey: getItem(STORAGE_KEYS.elevenLabsKey),
+    sttConnectorUrl: normalizedConnectorUrl,
+    defaultTranscriptMode: (getItem(STORAGE_KEYS.defaultTranscriptMode) || defaultSettings.defaultTranscriptMode) as AppSettings["defaultTranscriptMode"],
+    byoGoogleApiKey: getItem(STORAGE_KEYS.byoGoogleApiKey),
+    showAdvancedTranscriptOptions: getItem(STORAGE_KEYS.showAdvancedTranscriptOptions) === "true",
     activeAiProvider: (getItem(STORAGE_KEYS.activeAiProvider) || "gemini") as AppSettings["activeAiProvider"],
     primaryVoiceId: getItem(STORAGE_KEYS.primaryVoiceId) || defaultSettings.primaryVoiceId,
     secondaryVoiceId: getItem(STORAGE_KEYS.secondaryVoiceId) || defaultSettings.secondaryVoiceId,
@@ -58,6 +76,10 @@ export function saveSettings(settings: AppSettings) {
   setItem(STORAGE_KEYS.openRouterKey, settings.openRouterKey);
   setItem(STORAGE_KEYS.ttsKey, settings.ttsKey);
   setItem(STORAGE_KEYS.elevenLabsKey, settings.elevenLabsKey);
+  setItem(STORAGE_KEYS.sttConnectorUrl, settings.sttConnectorUrl);
+  setItem(STORAGE_KEYS.defaultTranscriptMode, settings.defaultTranscriptMode);
+  setItem(STORAGE_KEYS.byoGoogleApiKey, settings.byoGoogleApiKey);
+  setItem(STORAGE_KEYS.showAdvancedTranscriptOptions, String(settings.showAdvancedTranscriptOptions));
   setItem(STORAGE_KEYS.activeAiProvider, settings.activeAiProvider);
   setItem(STORAGE_KEYS.primaryVoiceId, settings.primaryVoiceId);
   setItem(STORAGE_KEYS.secondaryVoiceId, settings.secondaryVoiceId);

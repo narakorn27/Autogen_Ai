@@ -1,0 +1,8 @@
+storage/temp_audio/*
+!storage/temp_audio/.gitkeep
+
+storage/transcripts/*
+!storage/transcripts/.gitkeep
+
+storage/logs/*
+!storage/logs/.gitkeep
